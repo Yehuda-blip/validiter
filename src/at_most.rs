@@ -10,7 +10,10 @@ pub struct AtMost<I: Iterator> {
 
 impl<I: Iterator> AtMost<I> {
     fn new(iter: I, max_count: usize) -> AtMost<I> {
-        AtMost { iter: iter.enumerate(), max_count }
+        AtMost {
+            iter: iter.enumerate(),
+            max_count,
+        }
     }
 }
 
@@ -19,20 +22,18 @@ impl<I: Iterator> Iterator for AtMost<I> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some((i, val)) => {
-                match i < self.max_count {
-                    true => Some(Ok(val)),
-                    false => Some(Err(ValidErr::TooMany(val)))
-                }
-            }
-            None => None
+            Some((i, val)) => match i < self.max_count {
+                true => Some(Ok(val)),
+                false => Some(Err(ValidErr::TooMany(val))),
+            },
+            None => None,
         }
     }
 }
 
 impl<I> ValidatedIterator for I
-    where
-        I: Iterator
+where
+    I: Iterator,
 {
     fn at_most(self, max_count: usize) -> AtMost<Self> {
         AtMost::new(self, max_count)
@@ -42,7 +43,6 @@ impl<I> ValidatedIterator for I
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn test_ok_on_under_bound() {
@@ -58,7 +58,10 @@ mod tests {
 
     #[test]
     fn test_all_elements_present_and_in_order() {
-        let validated_collection = (0..10).at_most(10).collect::<Result<Vec<i32>, _>>().expect("could not collect the validated vector");
+        let validated_collection = (0..10)
+            .at_most(10)
+            .collect::<Result<Vec<i32>, _>>()
+            .expect("could not collect the validated vector");
         let unvalidated_collection = (0..10).collect::<Vec<i32>>();
         assert_eq!(validated_collection, unvalidated_collection);
     }
