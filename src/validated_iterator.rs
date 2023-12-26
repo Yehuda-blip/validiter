@@ -1,4 +1,4 @@
-use crate::{at_least::AtLeast, at_most::AtMost, ValidatedIterator};
+use crate::{at_least::AtLeast, at_most::AtMost, validate::Validate, ValidatedIterator};
 
 impl<I> ValidatedIterator for I
 where
@@ -10,6 +10,10 @@ where
 
     fn at_least(self, min_count: usize) -> AtLeast<Self> {
         AtLeast::new(self, min_count)
+    }
+
+    fn validate<F: FnMut(&Self::Item) -> bool>(self, validation: F) -> Validate<Self, F> {
+        Validate::new(self, validation)
     }
 }
 
@@ -90,4 +94,32 @@ mod tests {
         }
     }
     //// at least tests end ////
+
+    //// validate tests start ////
+    #[test]
+    fn test_validate() {
+        let passed: Vec<_> = (0..10)
+            .validate(|element| element % 3 == 2)
+            .filter(|res| res.is_ok())
+            .collect();
+        assert_eq!(passed, [Ok(2), Ok(5), Ok(8)]);
+
+        let errs: Vec<_> = (0..10)
+            .validate(|element| element % 3 == 2)
+            .filter(|res| res.is_err())
+            .collect();
+        assert_eq!(
+            errs,
+            [
+                Err(ValidErr::InvalidItem(0)),
+                Err(ValidErr::InvalidItem(1)),
+                Err(ValidErr::InvalidItem(3)),
+                Err(ValidErr::InvalidItem(4)),
+                Err(ValidErr::InvalidItem(6)),
+                Err(ValidErr::InvalidItem(7)),
+                Err(ValidErr::InvalidItem(9))
+            ]
+        )
+    }
+    //// validate tests end ////
 }

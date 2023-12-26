@@ -1,6 +1,5 @@
 use crate::valid_err::ValidErr;
 
-
 pub struct AtLeast<I: Iterator> {
     iter: I,
     min_count: usize,
@@ -36,5 +35,3 @@ impl<I: Iterator> Iterator for AtLeast<I> {
         }
     }
 }
-
-
