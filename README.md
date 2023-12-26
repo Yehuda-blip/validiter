@@ -7,5 +7,5 @@ Ideally, the adapters in the crate should allow for validiter result type propog
 ```
 (0..10).between(2, 7).at_most(3)
 ```
-would return an iterator where the first 2 elements are an ValidErr::OutOfBound(i32) type, the next 3 are Ok(i32), then 2 ValidErr::TooMany(i32) and finally 3 more ValidErr::OutOfBounds(i32),
+would return an iterator where the first 2 elements are an `ValidErr::OutOfBound(i32)` type, the next 3 are `Ok(i32)`, then 2 `ValidErr::TooMany(i32)` and finally 3 more `ValidErr::OutOfBounds(i32)`,
 rather than wrapping the inner values twice in a double result.
