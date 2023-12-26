@@ -1,4 +1,7 @@
-use crate::{at_least::AtLeast, at_most::AtMost, validate::Validate, ValidatedIterator};
+use crate::{
+    at_least::AtLeast, at_most::AtMost, between::Between, validate::Validate, ValidatedIterator,
+    ValidatedOrderedIterator,
+};
 
 impl<I> ValidatedIterator for I
 where
@@ -14,6 +17,16 @@ where
 
     fn validate<F: FnMut(&Self::Item) -> bool>(self, validation: F) -> Validate<Self, F> {
         Validate::new(self, validation)
+    }
+}
+
+impl<I> ValidatedOrderedIterator for I
+where
+    I: ValidatedIterator,
+    I::Item: PartialOrd,
+{
+    fn between(self, lower_bound: Self::Item, upper_bound: Self::Item) -> Between<Self> {
+        Between::new(self, lower_bound, upper_bound)
     }
 }
 
@@ -122,4 +135,24 @@ mod tests {
         )
     }
     //// validate tests end ////
+
+    //// between tests start ////
+    #[test]
+    fn test_between() {
+        let passed: Vec<_> = (-5..5).between(-2, 3).filter(|res| res.is_ok()).collect();
+        assert_eq!(passed, [Ok(-2), Ok(-1), Ok(0), Ok(1), Ok(2)]);
+
+        let errs: Vec<_> = (-5..5).between(-2, 3).filter(|res| res.is_err()).collect();
+        assert_eq!(
+            errs,
+            [
+                Err(ValidErr::OutOfBounds(-5)),
+                Err(ValidErr::OutOfBounds(-4)),
+                Err(ValidErr::OutOfBounds(-3)),
+                Err(ValidErr::OutOfBounds(3)),
+                Err(ValidErr::OutOfBounds(4))
+            ]
+        );
+    }
+    //// between tests end ////
 }

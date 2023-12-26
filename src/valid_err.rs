@@ -2,5 +2,6 @@
 pub enum ValidErr<I: Iterator> {
     TooMany(I::Item),
     TooFew,
-    InvalidItem(I::Item)
+    InvalidItem(I::Item),
+    OutOfBounds(I::Item)
 }
