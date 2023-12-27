@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq)]
-pub enum ValidErr<I: Iterator> {
+pub enum ValidatedIteratorErr<I: Iterator> {
     TooMany(I::Item),
     TooFew,
     InvalidItem(I::Item),

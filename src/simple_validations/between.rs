@@ -1,4 +1,4 @@
-use crate::valid_err::ValidErr;
+use super::valid_err::ValidatedIteratorErr;
 
 pub struct Between<I: Iterator>
 where
@@ -20,13 +20,13 @@ impl<I: Iterator<Item = impl PartialOrd>> Between<I> {
 }
 
 impl<I: Iterator<Item = impl PartialOrd>> Iterator for Between<I> {
-    type Item = Result<I::Item, ValidErr<I>>;
+    type Item = Result<I::Item, ValidatedIteratorErr<I>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
             Some(val) => match val >= self.lower_bound && val < self.upper_bound {
                 true => Some(Ok(val)),
-                false => Some(Err(ValidErr::OutOfBounds(val))),
+                false => Some(Err(ValidatedIteratorErr::OutOfBounds(val))),
             },
             None => None,
         }

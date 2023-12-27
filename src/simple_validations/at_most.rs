@@ -1,6 +1,6 @@
 use std::iter::Enumerate;
 
-use crate::valid_err::ValidErr;
+use super::valid_err::ValidatedIteratorErr;
 
 pub struct AtMost<I: Iterator> {
     iter: Enumerate<I>,
@@ -17,13 +17,13 @@ impl<I: Iterator> AtMost<I> {
 }
 
 impl<I: Iterator> Iterator for AtMost<I> {
-    type Item = Result<I::Item, ValidErr<I>>;
+    type Item = Result<I::Item, ValidatedIteratorErr<I>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
             Some((i, val)) => match i < self.max_count {
                 true => Some(Ok(val)),
-                false => Some(Err(ValidErr::TooMany(val))),
+                false => Some(Err(ValidatedIteratorErr::TooMany(val))),
             },
             None => None,
         }

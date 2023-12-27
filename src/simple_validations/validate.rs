@@ -1,4 +1,4 @@
-use crate::valid_err::ValidErr;
+use super::valid_err::ValidatedIteratorErr;
 
 pub struct Validate<I: Iterator, F: FnMut(&I::Item) -> bool> {
     iter: I,
@@ -18,13 +18,13 @@ impl<I: Iterator, F> Iterator for Validate<I, F>
 where
     F: FnMut(&I::Item) -> bool,
 {
-    type Item = Result<I::Item, ValidErr<I>>;
+    type Item = Result<I::Item, ValidatedIteratorErr<I>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
             Some(element) => match (self.validation)(&element) {
                 true => Some(Ok(element)),
-                false => Some(Err(ValidErr::InvalidItem(element))),
+                false => Some(Err(ValidatedIteratorErr::InvalidItem(element))),
             },
             None => None,
         }

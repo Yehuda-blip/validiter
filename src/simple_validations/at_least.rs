@@ -1,4 +1,4 @@
-use crate::valid_err::ValidErr;
+use super::valid_err::ValidatedIteratorErr;
 
 pub struct AtLeast<I: Iterator> {
     iter: I,
@@ -17,7 +17,7 @@ impl<I: Iterator> AtLeast<I> {
 }
 
 impl<I: Iterator> Iterator for AtLeast<I> {
-    type Item = Result<I::Item, ValidErr<I>>;
+    type Item = Result<I::Item, ValidatedIteratorErr<I>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
@@ -29,7 +29,7 @@ impl<I: Iterator> Iterator for AtLeast<I> {
                 true => None,
                 false => {
                     self.counter = self.min_count;
-                    Some(Err(ValidErr::TooFew))
+                    Some(Err(ValidatedIteratorErr::TooFew))
                 }
             },
         }

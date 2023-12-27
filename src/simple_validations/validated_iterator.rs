@@ -1,7 +1,27 @@
-use crate::{
-    at_least::AtLeast, at_most::AtMost, between::Between, validate::Validate, ValidatedIterator,
-    ValidatedOrderedIterator,
+use super::{
+    at_least::AtLeast, at_most::AtMost, between::Between, validate::Validate
 };
+
+pub trait ValidatedIterator: Iterator {
+    fn at_most(self, max_count: usize) -> AtMost<Self>
+    where
+        Self: Sized;
+    fn at_least(self, min_count: usize) -> AtLeast<Self>
+    where
+        Self: Sized;
+    fn check<F: FnMut(&Self::Item) -> bool>(self, validation: F) -> Validate<Self, F>
+    where
+        Self: Sized;
+}
+
+pub trait ValidatedOrderedIterator: ValidatedIterator
+where
+    Self: Sized,
+    Self::Item: PartialOrd,
+{
+    fn between(self, lower_bound: Self::Item, upper_bound: Self::Item) -> Between<Self>;
+}
+
 
 impl<I> ValidatedIterator for I
 where
@@ -15,7 +35,7 @@ where
         AtLeast::new(self, min_count)
     }
 
-    fn validate<F: FnMut(&Self::Item) -> bool>(self, validation: F) -> Validate<Self, F> {
+    fn check<F: FnMut(&Self::Item) -> bool>(self, validation: F) -> Validate<Self, F> {
         Validate::new(self, validation)
     }
 }
@@ -32,7 +52,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::valid_err::ValidErr;
+    use super::super::valid_err::ValidatedIteratorErr;
 
     use super::*;
 
@@ -46,7 +66,7 @@ mod tests {
     #[test]
     fn test_at_most_errs_on_too_many() {
         let collection: Result<Vec<i32>, _> = (0..10).at_most(9).collect();
-        assert!(matches!(collection, Err(ValidErr::TooMany(_))))
+        assert!(matches!(collection, Err(ValidatedIteratorErr::TooMany(_))))
     }
 
     #[test]
@@ -62,13 +82,13 @@ mod tests {
     #[test]
     fn test_at_most_nth_is_err_when_overflowing() {
         let first_overflow = (0..10).at_most(9).nth(9).unwrap();
-        assert!(matches!(first_overflow, Err(ValidErr::TooMany(9))))
+        assert!(matches!(first_overflow, Err(ValidatedIteratorErr::TooMany(9))))
     }
 
     #[test]
     fn test_at_most_must_be_empty_on_max_count_is_0() {
         let first_overflow = (0..10).at_most(0).next().unwrap();
-        assert!(matches!(first_overflow, Err(ValidErr::TooMany(0))))
+        assert!(matches!(first_overflow, Err(ValidatedIteratorErr::TooMany(0))))
     }
     //// at most tests end ////
 
@@ -112,25 +132,25 @@ mod tests {
     #[test]
     fn test_validate() {
         let passed: Vec<_> = (0..10)
-            .validate(|element| element % 3 == 2)
+            .check(|element| element % 3 == 2)
             .filter(|res| res.is_ok())
             .collect();
         assert_eq!(passed, [Ok(2), Ok(5), Ok(8)]);
 
         let errs: Vec<_> = (0..10)
-            .validate(|element| element % 3 == 2)
+            .check(|element| element % 3 == 2)
             .filter(|res| res.is_err())
             .collect();
         assert_eq!(
             errs,
             [
-                Err(ValidErr::InvalidItem(0)),
-                Err(ValidErr::InvalidItem(1)),
-                Err(ValidErr::InvalidItem(3)),
-                Err(ValidErr::InvalidItem(4)),
-                Err(ValidErr::InvalidItem(6)),
-                Err(ValidErr::InvalidItem(7)),
-                Err(ValidErr::InvalidItem(9))
+                Err(ValidatedIteratorErr::InvalidItem(0)),
+                Err(ValidatedIteratorErr::InvalidItem(1)),
+                Err(ValidatedIteratorErr::InvalidItem(3)),
+                Err(ValidatedIteratorErr::InvalidItem(4)),
+                Err(ValidatedIteratorErr::InvalidItem(6)),
+                Err(ValidatedIteratorErr::InvalidItem(7)),
+                Err(ValidatedIteratorErr::InvalidItem(9))
             ]
         )
     }
@@ -146,11 +166,11 @@ mod tests {
         assert_eq!(
             errs,
             [
-                Err(ValidErr::OutOfBounds(-5)),
-                Err(ValidErr::OutOfBounds(-4)),
-                Err(ValidErr::OutOfBounds(-3)),
-                Err(ValidErr::OutOfBounds(3)),
-                Err(ValidErr::OutOfBounds(4))
+                Err(ValidatedIteratorErr::OutOfBounds(-5)),
+                Err(ValidatedIteratorErr::OutOfBounds(-4)),
+                Err(ValidatedIteratorErr::OutOfBounds(-3)),
+                Err(ValidatedIteratorErr::OutOfBounds(3)),
+                Err(ValidatedIteratorErr::OutOfBounds(4))
             ]
         );
     }
