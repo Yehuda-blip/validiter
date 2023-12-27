@@ -45,3 +45,7 @@ where
         }
     }
 }
+
+impl<I: ValidationSpaceAdapter> ValidIter for AtMost<I> {
+    type BaseType = I::BaseType;
+}
