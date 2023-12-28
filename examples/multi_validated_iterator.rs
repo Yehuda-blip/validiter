@@ -7,5 +7,6 @@ fn main() {
         .to_validation_space()
         .at_most(2)
         .at_most(2)
+        .at_least(2)
         .for_each(|v| println!("{:?}", v));
 }

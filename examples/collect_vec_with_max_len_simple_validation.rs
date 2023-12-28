@@ -6,6 +6,6 @@ fn main() {
 }
 
 
-fn even() {
-    let even = (1..).map(|i| i * 2);
-}
+// fn even() {
+//     let even = (1..).map(|i| i * 2);
+// }

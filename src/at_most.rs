@@ -1,5 +1,7 @@
+use crate::valid_result::ValidErr;
+
 use super::{
-    valid_iter::{ValidIter, ValidationSpaceAdapter},
+    valid_iter::ValidationSpaceAdapter,
     valid_result::VResult,
 };
 
@@ -25,11 +27,6 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter> ValidationSpaceAdapter for AtMost<I> {
-    type BaseType = I::BaseType;
-    // type Transformed = I;
-}
-
 impl<I: ValidationSpaceAdapter> Iterator for AtMost<I>
 where
     I: Iterator<Item = VResult<I::BaseType>>,
@@ -39,13 +36,16 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
             Some(Ok(val)) => {
-                Some(Ok(val))
+                match self.counter >= self.max_count {
+                    true => Some(Err(ValidErr::TooMany(val))),
+                    false => Some(Ok(val))
+                }
             },
             other => other
         }
     }
 }
 
-impl<I: ValidationSpaceAdapter> ValidIter for AtMost<I> {
+impl<I: ValidationSpaceAdapter> ValidationSpaceAdapter for AtMost<I> {
     type BaseType = I::BaseType;
 }
