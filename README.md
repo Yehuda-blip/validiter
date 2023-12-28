@@ -10,8 +10,5 @@ Ideally, the adapters in the crate should allow for validiter result type propog
 would return an iterator where the first 2 elements are an `ValidErr::OutOfBound(i32)` type, the next 3 are `Ok(i32)`, then 2 `ValidErr::TooMany(i32)` and finally 3 more `ValidErr::OutOfBounds(i32)`,
 rather than wrapping the inner values twice in a double result. Unfortunately, this straightforward behaviour is probably impossible without the "trait specialization" feature of unstable rust, 
 which would allow us to wrap only non `Result<_, ValidErr<_>>` types and provide specialized behaviour for already wrapped types. Whether this drawback is beneficial overall or not (it probably is), 
-it forces us to create our own `ValidationSpace` type system, to which we send generic iterators, and in which every element in the iterator is already wrapped in the specialized `ValidResult` type 
-(this is not the std::Result, unfortunately). And so together with the validation adapters, we need to provide senders to and from the validation space and the "Any Type Space".
-
-What we currently have is a simple non-error-propogating validations folder, which can be applied to any iterator and which provides `std::Result` types (in `mod simple_validations`). With that, I'm building
-the validation-space-error-propogating validation system (in `mod complex_validations`).
+it forces us to create our own `ValidationSpace` type system, to which we send generic iterators, and in which every element in the iterator is already wrapped in the specialized `ValidResult` type.
+And so together with the validation adapters, we need to provide senders to the "Any Type Space".
