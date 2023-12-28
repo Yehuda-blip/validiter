@@ -51,3 +51,19 @@ where
 {
     type BaseType = I::BaseType;
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+
+    #[test]
+    fn test_ensure() {
+        (0..10).validate().ensure(|i| i % 2 == 0).enumerate().for_each(|(i, res_i)| {
+            match res_i {
+                Ok(int) if i % 2 == 0 && i as i32 == int => {},
+                Err(ValidErr::Invalid(int)) if i % 2 == 1 && i as i32 == int => {},
+                _ => panic!("unexpected value in ensure adapter")
+            }
+        })
+    }
+}
