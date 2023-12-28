@@ -9,5 +9,6 @@ fn main() {
         .at_most(2)
         .at_least(2)
         .between(4, 8)
+        .ensure(|i| i % 2 == 0)
         .for_each(|v| println!("{:?}", v));
 }

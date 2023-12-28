@@ -1,4 +1,4 @@
-use crate::{at_least::AtLeast, between::Between};
+use crate::{at_least::AtLeast, between::Between, ensure::Ensure};
 
 use super::{at_most::AtMost, validatable::Validatable};
 
@@ -41,5 +41,13 @@ pub trait ValidIter {
         <Self as ValidationSpaceAdapter>::BaseType: PartialOrd,
     {
         Between::<Self>::new(self, lower_bound, upper_bound)
+    }
+
+    fn ensure<F>(self, validation: F) -> Ensure<Self, F>
+    where
+        Self: Sized + ValidationSpaceAdapter,
+        F: FnMut(&<Self as ValidationSpaceAdapter>::BaseType) -> bool,
+    {
+        Ensure::<Self, F>::new(self, validation)
     }
 }
