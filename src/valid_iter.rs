@@ -1,10 +1,10 @@
-use crate::at_least::AtLeast;
+use crate::{at_least::AtLeast, between::Between};
 
 use super::{at_most::AtMost, validatable::Validatable};
 
 pub trait Unvalidatable: Iterator + Sized {
-    fn to_validation_space(self) -> Validatable<Self> {
-        Validatable {iter: self}
+    fn validate(self) -> Validatable<Self> {
+        Validatable { iter: self }
     }
 }
 
@@ -30,8 +30,16 @@ pub trait ValidIter {
     {
         AtLeast::<Self>::new(self, min_count)
     }
-}
 
-impl<I: ValidationSpaceAdapter> ValidIter for AtMost<I> {
-    type BaseType = I::BaseType;
+    fn between(
+        self,
+        lower_bound: <Self as ValidationSpaceAdapter>::BaseType,
+        upper_bound: <Self as ValidationSpaceAdapter>::BaseType,
+    ) -> Between<Self>
+    where
+        Self: Sized + ValidationSpaceAdapter,
+        <Self as ValidationSpaceAdapter>::BaseType: PartialOrd,
+    {
+        Between::<Self>::new(self, lower_bound, upper_bound)
+    }
 }

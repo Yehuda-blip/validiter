@@ -1,4 +1,4 @@
-use crate::valid_result::ValidErr;
+use crate::{valid_result::ValidErr, valid_iter::ValidIter};
 
 use super::{
     valid_iter::ValidationSpaceAdapter,
@@ -47,5 +47,9 @@ where
 }
 
 impl<I: ValidationSpaceAdapter> ValidationSpaceAdapter for AtMost<I> {
+    type BaseType = I::BaseType;
+}
+
+impl<I: ValidationSpaceAdapter> ValidIter for AtMost<I> {
     type BaseType = I::BaseType;
 }

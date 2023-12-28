@@ -24,6 +24,4 @@ impl<I: Iterator> Iterator for Validatable<I> {
 
 impl<I: Iterator> ValidIter for Validatable<I> {
     type BaseType = I::Item;
-
-    // type InnerIter;
 }
