@@ -82,7 +82,7 @@ mod tests {
     #[test]
     fn test_at_least_on_success() {
         assert_eq!((0..10).validate().at_least(5).count(), 10);
-        (0..10).validate().at_least(5).enumerate().for_each(|(i, res_i)| {
+        (0..10).validate().at_least(5).for_each(|res_i| {
             match res_i {
                 Ok(_) => {},
                 _ => panic!("unexpected error in at least adapter")
@@ -143,8 +143,7 @@ mod tests {
             .validate()
             .at_least(100)
             .take(10)
-            .enumerate()
-            .for_each(|(i, res_i)| {
+            .for_each(|res_i| {
                 match res_i {
                     Ok(_) => {},
                     _ => panic!("failed the iteration when last error element was truncated")
