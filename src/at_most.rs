@@ -1,6 +1,6 @@
 use super::{
     valid_iter::{ValidIter, ValidationSpaceAdapter},
-    valid_result::ValidResult,
+    valid_result::VResult,
 };
 
 pub struct AtMost<I: ValidationSpaceAdapter> {
@@ -32,14 +32,14 @@ impl<I: ValidationSpaceAdapter> ValidationSpaceAdapter for AtMost<I> {
 
 impl<I: ValidationSpaceAdapter> Iterator for AtMost<I>
 where
-    I: Iterator<Item = ValidResult<I::BaseType>>,
+    I: Iterator<Item = VResult<I::BaseType>>,
 {
-    type Item = ValidResult<I::BaseType>;
+    type Item = VResult<I::BaseType>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(ValidResult::Ok(val)) => {
-                Some(ValidResult::Ok(val))
+            Some(Ok(val)) => {
+                Some(Ok(val))
             },
             other => other
         }

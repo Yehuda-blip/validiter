@@ -1,4 +1,4 @@
-use super::{valid_iter::{ValidationSpaceAdapter, ValidIter}, valid_result::ValidResult};
+use super::{valid_iter::{ValidationSpaceAdapter, ValidIter}, valid_result::VResult};
 
 pub struct Validatable<I: Iterator> {
     pub(crate) iter: I,
@@ -12,11 +12,11 @@ where
 }
 
 impl<I: Iterator> Iterator for Validatable<I> {
-    type Item = ValidResult<I::Item>;
+    type Item = VResult<I::Item>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(val) => Some(ValidResult::Ok(val)),
+            Some(val) => Some(Ok(val)),
             None => None
         }
     }

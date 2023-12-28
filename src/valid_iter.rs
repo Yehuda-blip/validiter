@@ -1,4 +1,4 @@
-use super::{at_most::AtMost, valid_result::ValidResult, validatable::Validatable};
+use super::{at_most::AtMost, valid_result::VResult, validatable::Validatable};
 
 pub trait Unvalidatable: Iterator + Sized {
     fn to_validation_space(self) -> Validatable<Self> {
