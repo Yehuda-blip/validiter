@@ -3,7 +3,7 @@ mod at_most;
 mod between;
 mod ensure;
 pub mod valid_iter;
-mod valid_result;
+pub mod valid_result;
 mod validatable;
 
 #[cfg(test)]
