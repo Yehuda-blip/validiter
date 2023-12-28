@@ -44,10 +44,6 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter> ValidationSpaceAdapter for AtMost<I> {
-    type BaseType = I::BaseType;
-}
-
 impl<I: ValidationSpaceAdapter> ValidIter for AtMost<I> {
     type BaseType = I::BaseType;
 }

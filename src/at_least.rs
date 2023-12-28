@@ -48,10 +48,6 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter> ValidationSpaceAdapter for AtLeast<I> {
-    type BaseType = I::BaseType;
-}
-
 impl<I: ValidationSpaceAdapter> ValidIter for AtLeast<I> {
     type BaseType = I::BaseType;
 }

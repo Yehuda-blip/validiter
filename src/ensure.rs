@@ -38,13 +38,6 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter, F> ValidationSpaceAdapter for Ensure<I, F>
-where
-    F: FnMut(&I::BaseType) -> bool,
-{
-    type BaseType = I::BaseType;
-}
-
 impl<I: ValidationSpaceAdapter, F> ValidIter for Ensure<I, F>
 where
     F: FnMut(&I::BaseType) -> bool,

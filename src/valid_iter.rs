@@ -1,4 +1,9 @@
-use crate::{at_least::AtLeast, between::Between, ensure::Ensure};
+use crate::{
+    at_least::AtLeast,
+    between::Between,
+    ensure::Ensure,
+    valid_result::ValidationResult,
+};
 
 use super::{at_most::AtMost, validatable::Validatable};
 
@@ -50,4 +55,12 @@ pub trait ValidIter {
     {
         Ensure::<Self, F>::new(self, validation)
     }
+}
+
+impl<I> ValidationSpaceAdapter for I
+where
+    I: Iterator + Sized,
+    I::Item: ValidationResult
+{
+    type BaseType = <<I as Iterator>::Item as ValidationResult>::BaseType;
 }

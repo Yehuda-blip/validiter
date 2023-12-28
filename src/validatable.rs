@@ -7,13 +7,6 @@ pub struct Validatable<I: Iterator> {
     pub(crate) iter: I,
 }
 
-impl<I> ValidationSpaceAdapter for Validatable<I>
-where
-    I: Iterator,
-{
-    type BaseType = I::Item;
-}
-
 impl<I: Iterator> Iterator for Validatable<I> {
     type Item = VResult<I::Item>;
 

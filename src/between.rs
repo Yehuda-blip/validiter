@@ -46,13 +46,6 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter> ValidationSpaceAdapter for Between<I>
-where
-    I::BaseType: PartialOrd,
-{
-    type BaseType = I::BaseType;
-}
-
 impl<I: ValidationSpaceAdapter> ValidIter for Between<I>
 where
     I::BaseType: PartialOrd,

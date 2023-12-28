@@ -7,3 +7,11 @@ pub enum ValidErr<E> {
 }
 
 pub type VResult<E> = Result<E, ValidErr<E>>;
+
+pub trait ValidationResult {
+    type BaseType;
+}
+
+impl<E> ValidationResult for VResult<E> {
+    type BaseType = E;
+}
