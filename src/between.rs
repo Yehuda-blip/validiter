@@ -97,7 +97,7 @@ mod tests {
         match nan_out_of_bounds {
             Ok(_) => panic!("non ordered item validated as in bounds"),
             Err(ValidErr::OutOfBounds(oob)) => assert!(oob.is_nan()),
-            _ => panic!("unexpected value in at least")
+            _ => panic!("unexpected value in at least"),
         }
     }
 }

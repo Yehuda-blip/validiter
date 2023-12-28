@@ -1,9 +1,6 @@
-use crate::{valid_result::ValidErr, valid_iter::ValidIter};
+use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
-use super::{
-    valid_iter::ValidationSpaceAdapter,
-    valid_result::VResult,
-};
+use super::{valid_iter::ValidationSpaceAdapter, valid_result::VResult};
 
 pub struct AtMost<I: ValidationSpaceAdapter> {
     iter: I,
@@ -35,16 +32,14 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(Ok(val)) => {
-                match self.counter >= self.max_count {
-                    true => Some(Err(ValidErr::TooMany(val))),
-                    false => {
-                        self.counter += 1;
-                        Some(Ok(val))
-                    }
+            Some(Ok(val)) => match self.counter >= self.max_count {
+                true => Some(Err(ValidErr::TooMany(val))),
+                false => {
+                    self.counter += 1;
+                    Some(Ok(val))
                 }
             },
-            other => other
+            other => other,
         }
     }
 }
@@ -108,11 +103,14 @@ mod tests {
 
     #[test]
     fn test_at_most_by_ref() {
-        [0, 1, 2, 3].iter().validate().at_most(2).enumerate().for_each(|(i, res_i)| {
-            match i < 2 {
+        [0, 1, 2, 3]
+            .iter()
+            .validate()
+            .at_most(2)
+            .enumerate()
+            .for_each(|(i, res_i)| match i < 2 {
                 true => assert!(matches!(res_i, Ok(_))),
-                false => assert!(matches!(res_i, Err(ValidErr::TooMany(_))))
-            }
-        })
+                false => assert!(matches!(res_i, Err(ValidErr::TooMany(_)))),
+            })
     }
 }
