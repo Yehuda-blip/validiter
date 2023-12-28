@@ -38,7 +38,10 @@ where
             Some(Ok(val)) => {
                 match self.counter >= self.max_count {
                     true => Some(Err(ValidErr::TooMany(val))),
-                    false => Some(Ok(val))
+                    false => {
+                        self.counter += 1;
+                        Some(Ok(val))
+                    }
                 }
             },
             other => other
