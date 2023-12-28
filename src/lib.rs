@@ -1,32 +1,42 @@
-use at_least::AtLeast;
-use between::Between;
-use validate::Validate;
-
-use crate::at_most::AtMost;
-
 mod at_least;
 mod at_most;
 mod between;
-mod valid_err;
-mod validate;
-mod validated_iterator;
+mod ensure;
+pub mod valid_iter;
+pub mod valid_result;
+mod validatable;
 
-pub trait ValidatedIterator: Iterator {
-    fn at_most(self, max_count: usize) -> AtMost<Self>
-    where
-        Self: Sized;
-    fn at_least(self, min_count: usize) -> AtLeast<Self>
-    where
-        Self: Sized;
-    fn validate<F: FnMut(&Self::Item) -> bool>(self, validation: F) -> Validate<Self, F>
-    where
-        Self: Sized;
-}
+#[cfg(test)]
+mod tests {
+    use crate::{
+        valid_iter::{Unvalidatable, ValidIter},
+        valid_result::{VResult, ValidErr},
+    };
 
-pub trait ValidatedOrderedIterator: ValidatedIterator
-where
-    Self: Sized,
-    Self::Item: PartialOrd,
-{
-    fn between(self, lower_bound: Self::Item, upper_bound: Self::Item) -> Between<Self>;
+    #[test]
+    fn test_multi_validation_on_iterator() {
+        let validation_results = (0..10)
+            .validate()
+            .at_most(7)
+            .between(2, 8)
+            .ensure(|i| i % 2 == 0)
+            .at_least(4)
+            .collect::<Vec<VResult<_>>>();
+        assert_eq!(
+            validation_results,
+            [
+                Err(ValidErr::OutOfBounds(0)),
+                Err(ValidErr::OutOfBounds(1)),
+                Ok(2),
+                Err(ValidErr::Invalid(3)),
+                Ok(4),
+                Err(ValidErr::Invalid(5)),
+                Ok(6),
+                Err(ValidErr::TooMany(7)),
+                Err(ValidErr::TooMany(8)),
+                Err(ValidErr::TooMany(9)),
+                Err(ValidErr::TooFew),
+            ]
+        )
+    }
 }
