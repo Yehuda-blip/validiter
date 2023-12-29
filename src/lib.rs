@@ -2,6 +2,7 @@ mod at_least;
 mod at_most;
 mod between;
 mod ensure;
+pub mod err_lift;
 pub mod valid_iter;
 pub mod valid_result;
 mod validatable;
