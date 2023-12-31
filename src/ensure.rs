@@ -1,15 +1,19 @@
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
-use super::{valid_iter::ValidationSpaceAdapter, valid_result::VResult};
+use super::valid_result::VResult;
 
-pub struct Ensure<I: ValidationSpaceAdapter, F: FnMut(&I::BaseType) -> bool> {
+pub struct Ensure<I, F>
+where
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
+    F: FnMut(&I::BaseType) -> bool,
+{
     iter: I,
     validation: F,
 }
 
 impl<I, F> Ensure<I, F>
 where
-    I: ValidationSpaceAdapter,
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     F: FnMut(&I::BaseType) -> bool,
 {
     pub fn new(iter: I, validation: F) -> Ensure<I, F>
@@ -20,9 +24,9 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter, F> Iterator for Ensure<I, F>
+impl<I, F> Iterator for Ensure<I, F>
 where
-    I: Iterator<Item = VResult<I::BaseType>>,
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     F: FnMut(&I::BaseType) -> bool,
 {
     type Item = VResult<I::BaseType>;
@@ -38,8 +42,9 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter, F> ValidIter for Ensure<I, F>
+impl<I, F> ValidIter for Ensure<I, F>
 where
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     F: FnMut(&I::BaseType) -> bool,
 {
     type BaseType = I::BaseType;

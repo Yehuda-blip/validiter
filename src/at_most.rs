@@ -1,8 +1,11 @@
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
-use super::{valid_iter::ValidationSpaceAdapter, valid_result::VResult};
+use super::valid_result::VResult;
 
-pub struct AtMost<I: ValidationSpaceAdapter> {
+pub struct AtMost<I>
+where
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
+{
     iter: I,
     max_count: usize,
     counter: usize,
@@ -10,7 +13,7 @@ pub struct AtMost<I: ValidationSpaceAdapter> {
 
 impl<I> AtMost<I>
 where
-    I: ValidationSpaceAdapter,
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
 {
     pub fn new(iter: I, max_count: usize) -> AtMost<I>
     where
@@ -24,9 +27,9 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter> Iterator for AtMost<I>
+impl<I> Iterator for AtMost<I>
 where
-    I: Iterator<Item = VResult<I::BaseType>>,
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
 {
     type Item = VResult<I::BaseType>;
 
@@ -44,7 +47,10 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter> ValidIter for AtMost<I> {
+impl<I> ValidIter for AtMost<I>
+where
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
+{
     type BaseType = I::BaseType;
 }
 

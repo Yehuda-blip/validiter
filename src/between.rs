@@ -1,9 +1,10 @@
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
-use super::{valid_iter::ValidationSpaceAdapter, valid_result::VResult};
+use super::valid_result::VResult;
 
-pub struct Between<I: ValidationSpaceAdapter>
+pub struct Between<I>
 where
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     I::BaseType: PartialOrd,
 {
     iter: I,
@@ -13,7 +14,7 @@ where
 
 impl<I> Between<I>
 where
-    I: ValidationSpaceAdapter,
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     I::BaseType: PartialOrd,
 {
     pub fn new(iter: I, lower_bound: I::BaseType, upper_bound: I::BaseType) -> Between<I>
@@ -28,9 +29,9 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter> Iterator for Between<I>
+impl<I> Iterator for Between<I>
 where
-    I: Iterator<Item = VResult<I::BaseType>>,
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     I::BaseType: PartialOrd,
 {
     type Item = VResult<I::BaseType>;
@@ -46,8 +47,9 @@ where
     }
 }
 
-impl<I: ValidationSpaceAdapter> ValidIter for Between<I>
+impl<I> ValidIter for Between<I>
 where
+    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     I::BaseType: PartialOrd,
 {
     type BaseType = I::BaseType;
