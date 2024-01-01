@@ -5,6 +5,7 @@ pub enum ValidErr<E> {
     OutOfBounds(E),
     Invalid(E),
     LiftedErr,
+    Incosistent(E)
 }
 
 pub type VResult<E> = Result<E, ValidErr<E>>;

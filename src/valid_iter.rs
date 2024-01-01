@@ -1,4 +1,6 @@
-use crate::{at_least::AtLeast, between::Between, ensure::Ensure, valid_result::VResult};
+use crate::{
+    at_least::AtLeast, between::Between, ensure::Ensure, look_back::LookBack, valid_result::VResult,
+};
 
 use super::{at_most::AtMost, validatable::Validatable};
 
@@ -45,5 +47,15 @@ pub trait ValidIter: Iterator {
         F: FnMut(&<Self as ValidIter>::BaseType) -> bool,
     {
         Ensure::<Self, F>::new(self, validation)
+    }
+
+    fn look_back<const N: usize, A, M, F>(self, extractor: M, validation: F) -> LookBack<Self, A, M, F, N>
+    where
+        Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
+        A: Default,
+        M: FnMut(&Self::BaseType) -> A,
+        F: FnMut(&A, &Self::BaseType) -> bool,
+    {
+        LookBack::new(self, extractor, validation)
     }
 }
