@@ -18,10 +18,13 @@ mod tests {
 
     #[test]
     fn test_multi_validation_on_iterator() {
-        let validation_results = (0..10).chain(0..10)
+        let validation_results = (0..10)
+            .chain(0..10)
+            .chain(-1..=-1)
+            .chain(1..=1)
             .validate()
-            .look_back_n::<10, _, _, _>(|i| *i, |prev, curr| prev == curr)
             .const_over(|i| *i >= 0)
+            .look_back_n::<10, _, _, _>(|i| *i, |prev, curr| prev == curr)
             .at_most(7)
             .between(2, 8)
             .ensure(|i| i % 2 == 0)
@@ -50,6 +53,8 @@ mod tests {
                 Err(ValidErr::TooMany(7)),
                 Err(ValidErr::TooMany(8)),
                 Err(ValidErr::TooMany(9)),
+                Err(ValidErr::BrokenConstant(-1)),
+                Err(ValidErr::Incosistent(1)),
                 Err(ValidErr::TooFew),
             ]
         )
