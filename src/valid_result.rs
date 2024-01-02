@@ -1,3 +1,4 @@
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, PartialEq)]
 pub enum ValidErr<E> {
     TooMany(E),
