@@ -4,8 +4,8 @@ pub enum ValidErr<E> {
     TooFew,
     OutOfBounds(E),
     Invalid(E),
-    LiftedErr,
-    Incosistent(E),
+    Lifted,
+    LookBackFailed(E),
     BrokenConstant(E),
 }
 

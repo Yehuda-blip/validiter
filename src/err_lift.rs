@@ -24,7 +24,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(Err(_err_type)) => Some(Err(ValidErr::LiftedErr)),
+            Some(Err(_err_type)) => Some(Err(ValidErr::Lifted)),
             Some(Ok(ok_type)) => Some(Ok(ok_type)),
             None => None,
         }
@@ -78,7 +78,7 @@ mod tests {
             })
             .err_lift()
             .collect::<Result<Vec<Vec<char>>, _>>();
-        assert_eq!(error, Err(ValidErr::LiftedErr));
+        assert_eq!(error, Err(ValidErr::Lifted));
     }
 
     #[test]

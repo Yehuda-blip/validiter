@@ -71,7 +71,7 @@ where
                             self.pos += 1;
                             Some(Ok(val))
                         }
-                        false => Some(Err(ValidErr::Incosistent(val))),
+                        false => Some(Err(ValidErr::LookBackFailed(val))),
                     }
                 } else {
                     self.value_store[self.pos] = (self.extractor)(&val);
@@ -127,10 +127,10 @@ mod tests {
                 Ok(2),
                 Ok(3),
                 Ok(4),
-                Err(ValidErr::Incosistent(2)),
-                Err(ValidErr::Incosistent(0)),
-                Err(ValidErr::Incosistent(1)),
-                Err(ValidErr::Incosistent(2)),
+                Err(ValidErr::LookBackFailed(2)),
+                Err(ValidErr::LookBackFailed(0)),
+                Err(ValidErr::LookBackFailed(1)),
+                Err(ValidErr::LookBackFailed(2)),
                 Ok(3),
                 Ok(4),
                 Ok(5),
@@ -220,8 +220,8 @@ mod tests {
             [
                 Ok(&0),
                 Ok(&0),
-                Err(ValidErr::Incosistent(&1)),
-                Err(ValidErr::Incosistent(&2)),
+                Err(ValidErr::LookBackFailed(&1)),
+                Err(ValidErr::LookBackFailed(&2)),
                 Ok(&0)
             ]
         )
@@ -241,10 +241,10 @@ mod tests {
                 Ok(&1),
                 Ok(&0),
                 Ok(&1),
-                Err(ValidErr::Incosistent(&1)),
+                Err(ValidErr::LookBackFailed(&1)),
                 Ok(&0),
                 Ok(&1),
-                Err(ValidErr::Incosistent(&1)),
+                Err(ValidErr::LookBackFailed(&1)),
                 Ok(&0),
                 Ok(&1),
             ]

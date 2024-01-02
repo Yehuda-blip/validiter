@@ -54,7 +54,7 @@ mod tests {
                 Err(ValidErr::TooMany(8)),
                 Err(ValidErr::TooMany(9)),
                 Err(ValidErr::BrokenConstant(-1)),
-                Err(ValidErr::Incosistent(1)),
+                Err(ValidErr::LookBackFailed(1)),
                 Err(ValidErr::TooFew),
             ]
         )
