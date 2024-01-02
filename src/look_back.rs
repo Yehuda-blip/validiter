@@ -48,8 +48,8 @@ where
     type Item = VResult<I::BaseType>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // there isn't a way currently to evaluate 
-        // constant generics at compile time. 
+        // there isn't a way currently to evaluate
+        // constant generics at compile time.
         // for more info: "error[E0401]: can't
         // use generic parameters from outer item"
         // in order to make sure that the program
@@ -164,56 +164,90 @@ mod tests {
 
     #[test]
     fn test_lookback_bounds() {
-        if (0..5).validate().look_back_n::<5, _, _, _>(|i| *i, |prev, i| prev == i).any(|res| res.is_err()) {
+        if (0..5)
+            .validate()
+            .look_back_n::<5, _, _, _>(|i| *i, |prev, i| prev == i)
+            .any(|res| res.is_err())
+        {
             panic!("failed on too early look back")
         }
 
-        if !(0..5).validate().look_back_n::<4, _, _, _>(|i| *i, |prev, i| prev == i).any(|res| res.is_err()) {
+        if !(0..5)
+            .validate()
+            .look_back_n::<4, _, _, _>(|i| *i, |prev, i| prev == i)
+            .any(|res| res.is_err())
+        {
             panic!("did not fail on count-1 look back")
         }
 
-        if (0..=0).validate().look_back_n::<1, _, _, _>(|i| *i, |prev, i| prev == i).any(|res| res.is_err()) {
+        if (0..=0)
+            .validate()
+            .look_back_n::<1, _, _, _>(|i| *i, |prev, i| prev == i)
+            .any(|res| res.is_err())
+        {
             panic!("failed on look back when count is 1")
         }
 
-        if (0..0).validate().look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev == i).any(|res| res.is_err()) {
+        if (0..0)
+            .validate()
+            .look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev == i)
+            .any(|res| res.is_err())
+        {
             panic!("failed on look back when count is 0")
         }
     }
 
     #[test]
     fn test_default_lookback_is_1() {
-        if (0..4).validate().look_back(|i| *i, |prev, i| i - 1 == *prev).any(|res| res.is_err()) {
+        if (0..4)
+            .validate()
+            .look_back(|i| *i, |prev, i| i - 1 == *prev)
+            .any(|res| res.is_err())
+        {
             panic!("should be incrementing iteration, approved by look back")
         }
     }
 
     #[test]
     fn test_lookback_ignores_its_errors() {
-        let results: Vec<VResult<_>> = [0, 0, 1, 2, 0].iter().validate().look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i == prev).collect();
-        assert_eq!(results, [
-            Ok(&0),
-            Ok(&0),
-            Err(ValidErr::Incosistent(&1)),
-            Err(ValidErr::Incosistent(&2)),
-            Ok(&0)
-        ])
+        let results: Vec<VResult<_>> = [0, 0, 1, 2, 0]
+            .iter()
+            .validate()
+            .look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i == prev)
+            .collect();
+        assert_eq!(
+            results,
+            [
+                Ok(&0),
+                Ok(&0),
+                Err(ValidErr::Incosistent(&1)),
+                Err(ValidErr::Incosistent(&2)),
+                Ok(&0)
+            ]
+        )
     }
 
     #[test]
     fn test_lookback_ok_then_err_then_ok_then_err_then_ok() {
-        let results: Vec<VResult<_>> = [0, 1, 0, 1, 1, 0, 1, 1, 0, 1].iter().validate().look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i % 2 == prev % 2).collect();
-        assert_eq!(results, [
-            Ok(&0),
-            Ok(&1),
-            Ok(&0),
-            Ok(&1),
-            Err(ValidErr::Incosistent(&1)),
-            Ok(&0),
-            Ok(&1),
-            Err(ValidErr::Incosistent(&1)),
-            Ok(&0),
-            Ok(&1),
-        ])
+        let results: Vec<VResult<_>> = [0, 1, 0, 1, 1, 0, 1, 1, 0, 1]
+            .iter()
+            .validate()
+            .look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i % 2 == prev % 2)
+            .collect();
+        assert_eq!(
+            results,
+            [
+                Ok(&0),
+                Ok(&1),
+                Ok(&0),
+                Ok(&1),
+                Err(ValidErr::Incosistent(&1)),
+                Ok(&0),
+                Ok(&1),
+                Err(ValidErr::Incosistent(&1)),
+                Ok(&0),
+                Ok(&1),
+            ]
+        )
     }
 }
