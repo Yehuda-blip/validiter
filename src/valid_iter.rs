@@ -49,7 +49,17 @@ pub trait ValidIter: Iterator {
         Ensure::<Self, F>::new(self, validation)
     }
 
-    fn look_back<const N: usize, A, M, F>(self, extractor: M, validation: F) -> LookBack<Self, A, M, F, N>
+    fn look_back<A, M, F>(self, extractor: M, validation: F) -> LookBack<Self, A, M, F, 1>
+    where
+        Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
+        A: Default,
+        M: FnMut(&Self::BaseType) -> A,
+        F: FnMut(&A, &Self::BaseType) -> bool,
+    {
+        LookBack::new(self, extractor, validation)
+    }
+
+    fn look_back_n<const N: usize, A, M, F>(self, extractor: M, validation: F) -> LookBack<Self, A, M, F, N>
     where
         Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
         A: Default,

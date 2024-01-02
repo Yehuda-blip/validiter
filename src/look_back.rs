@@ -2,7 +2,7 @@ use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
-pub struct LookBack<I, A, M, F, const N: usize>
+pub struct LookBack<I, A, M, F, const N: usize = 1>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: Default,
@@ -105,7 +105,7 @@ mod tests {
     fn test_lookback_ok() {
         if (0..10)
             .validate()
-            .look_back::<3, _, _, _>(|i| *i, |prev, i| prev < i)
+            .look_back_n::<3, _, _, _>(|i| *i, |prev, i| prev < i)
             .any(|res| res.is_err())
         {
             panic!("look back failed on ok iteration")
@@ -117,7 +117,7 @@ mod tests {
             .chain(2..=2)
             .chain(0..6)
             .validate()
-            .look_back::<3, _, _, _>(|i| *i, |prev, i| prev < i)
+            .look_back_n::<3, _, _, _>(|i| *i, |prev, i| prev < i)
             .collect();
 
         assert_eq!(
@@ -142,7 +142,7 @@ mod tests {
         if (0..5)
             .chain(0..5)
             .validate()
-            .look_back::<0, _, _, _>(|i| *i, |prev, i| prev < i)
+            .look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev < i)
             .any(|res| res.is_err())
         {
             panic!("look back failed when it should not be validating anything")
@@ -154,10 +154,36 @@ mod tests {
         if (0..5)
             .chain(0..=0)
             .validate()
-            .look_back::<7, _, _, _>(|i| *i, |prev, i| prev < i)
+            .look_back_n::<7, _, _, _>(|i| *i, |prev, i| prev < i)
             .any(|res| res.is_err())
         {
             panic!("look back failed when lookback is out of bounds")
+        }
+    }
+
+    #[test]
+    fn test_lookback_bounds() {
+        if (0..5).validate().look_back_n::<5, _, _, _>(|i| *i, |prev, i| prev == i).any(|res| res.is_err()) {
+            panic!("failed on too early look back")
+        }
+
+        if !(0..5).validate().look_back_n::<4, _, _, _>(|i| *i, |prev, i| prev == i).any(|res| res.is_err()) {
+            panic!("did not fail on count-1 look back")
+        }
+
+        if (0..=0).validate().look_back_n::<1, _, _, _>(|i| *i, |prev, i| prev == i).any(|res| res.is_err()) {
+            panic!("failed on look back when count is 1")
+        }
+
+        if (0..0).validate().look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev == i).any(|res| res.is_err()) {
+            panic!("failed on look back when count is 0")
+        }
+    }
+
+    #[test]
+    fn test_default_lookback_is_1() {
+        if (0..4).validate().look_back(|i| *i, |prev, i| i - 1 == *prev).any(|res| res.is_err()) {
+            panic!("should be incrementing iteration, approved by look back")
         }
     }
 }
