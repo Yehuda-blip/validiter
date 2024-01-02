@@ -111,6 +111,7 @@ mod tests {
             panic!("look back failed on ok iteration")
         }
     }
+
     #[test]
     fn test_lookback_err() {
         let lookback_err: Vec<VResult<_>> = (2..=4)
@@ -185,5 +186,34 @@ mod tests {
         if (0..4).validate().look_back(|i| *i, |prev, i| i - 1 == *prev).any(|res| res.is_err()) {
             panic!("should be incrementing iteration, approved by look back")
         }
+    }
+
+    #[test]
+    fn test_lookback_ignores_its_errors() {
+        let results: Vec<VResult<_>> = [0, 0, 1, 2, 0].iter().validate().look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i == prev).collect();
+        assert_eq!(results, [
+            Ok(&0),
+            Ok(&0),
+            Err(ValidErr::Incosistent(&1)),
+            Err(ValidErr::Incosistent(&2)),
+            Ok(&0)
+        ])
+    }
+
+    #[test]
+    fn test_lookback_ok_then_err_then_ok_then_err_then_ok() {
+        let results: Vec<VResult<_>> = [0, 1, 0, 1, 1, 0, 1, 1, 0, 1].iter().validate().look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i % 2 == prev % 2).collect();
+        assert_eq!(results, [
+            Ok(&0),
+            Ok(&1),
+            Ok(&0),
+            Ok(&1),
+            Err(ValidErr::Incosistent(&1)),
+            Ok(&0),
+            Ok(&1),
+            Err(ValidErr::Incosistent(&1)),
+            Ok(&0),
+            Ok(&1),
+        ])
     }
 }
