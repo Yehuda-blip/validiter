@@ -41,7 +41,7 @@ where
 pub trait ErrLiftable<OkType, ErrType>:
     Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized
 {
-    fn lift(self) -> ErrLift<OkType, ErrType, Self> {
+    fn err_lift(self) -> ErrLift<OkType, ErrType, Self> {
         ErrLift::new(self)
     }
 }
@@ -76,7 +76,7 @@ mod tests {
                     .ensure(|c| c.is_lowercase())
                     .collect::<Result<Vec<char>, _>>()
             })
-            .lift()
+            .err_lift()
             .collect::<Result<Vec<Vec<char>>, _>>();
         assert_eq!(error, Err(ValidErr::LiftedErr));
     }
@@ -92,7 +92,7 @@ mod tests {
                     .filter(|vec| vec.is_ok())
                     .collect::<Result<Vec<char>, _>>()
             })
-            .lift()
+            .err_lift()
             .collect::<Result<Vec<Vec<char>>, _>>();
         assert_eq!(
             ok,
@@ -115,7 +115,7 @@ mod tests {
                     .ensure(|c| c.is_lowercase())
                     .collect::<Result<Vec<char>, _>>()
             })
-            .lift()
+            .err_lift()
             .filter(|vector| vector.is_ok())
             .collect::<Result<Vec<Vec<char>>, _>>();
         assert_eq!(
