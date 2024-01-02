@@ -1,13 +1,13 @@
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
-pub struct ErrLift<OkType, ErrType, I>
+pub struct LiftErrs<OkType, ErrType, I>
 where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized,
 {
     iter: I,
 }
 
-impl<OkType, ErrType, I> ErrLift<OkType, ErrType, I>
+impl<OkType, ErrType, I> LiftErrs<OkType, ErrType, I>
 where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized,
 {
@@ -16,7 +16,7 @@ where
     }
 }
 
-impl<OkType, ErrType, I> Iterator for ErrLift<OkType, ErrType, I>
+impl<OkType, ErrType, I> Iterator for LiftErrs<OkType, ErrType, I>
 where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized,
 {
@@ -31,7 +31,7 @@ where
     }
 }
 
-impl<OkType, ErrType, I> ValidIter for ErrLift<OkType, ErrType, I>
+impl<OkType, ErrType, I> ValidIter for LiftErrs<OkType, ErrType, I>
 where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized,
 {
@@ -41,8 +41,8 @@ where
 pub trait ErrLiftable<OkType, ErrType>:
     Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized
 {
-    fn err_lift(self) -> ErrLift<OkType, ErrType, Self> {
-        ErrLift::new(self)
+    fn lift_errs(self) -> LiftErrs<OkType, ErrType, Self> {
+        LiftErrs::new(self)
     }
 }
 
@@ -76,7 +76,7 @@ mod tests {
                     .ensure(|c| c.is_lowercase())
                     .collect::<Result<Vec<char>, _>>()
             })
-            .err_lift()
+            .lift_errs()
             .collect::<Result<Vec<Vec<char>>, _>>();
         assert_eq!(error, Err(ValidErr::Lifted));
     }
@@ -92,7 +92,7 @@ mod tests {
                     .filter(|vec| vec.is_ok())
                     .collect::<Result<Vec<char>, _>>()
             })
-            .err_lift()
+            .lift_errs()
             .collect::<Result<Vec<Vec<char>>, _>>();
         assert_eq!(
             ok,
@@ -115,7 +115,7 @@ mod tests {
                     .ensure(|c| c.is_lowercase())
                     .collect::<Result<Vec<char>, _>>()
             })
-            .err_lift()
+            .lift_errs()
             .filter(|vector| vector.is_ok())
             .collect::<Result<Vec<Vec<char>>, _>>();
         assert_eq!(

@@ -1,5 +1,5 @@
 use validiter::{
-    err_lift::ErrLiftable,
+    lift_errs::ErrLiftable,
     valid_iter::{Unvalidatable, ValidIter},
     valid_result::ValidErr,
 };
@@ -50,7 +50,7 @@ fn s_to_mat(s: &str) -> Result<Vec<Vec<char>>, ValidErr<Vec<char>>> {
                 .at_least(1)
                 .collect::<Result<Vec<char>, _>>()
         })
-        .err_lift()
+        .lift_errs()
         .at_least(1)
         .const_over(|vec| vec.len())
         .collect::<Result<Vec<Vec<char>>, _>>()
