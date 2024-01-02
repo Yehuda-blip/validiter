@@ -30,6 +30,16 @@ abcd";
         Ok(mat) => println!("{:?}", mat),
         Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
     }
+
+    let different_length_lines_s = "abcd
+abcd
+abc
+abcd";
+    println!("different length rows matrix");
+    match s_to_mat(different_length_lines_s) {
+        Ok(mat) => println!("{:?}", mat),
+        Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
+    }
 }
 
 fn s_to_mat(s: &str) -> Result<Vec<Vec<char>>, ValidErr<Vec<char>>> {
@@ -42,5 +52,6 @@ fn s_to_mat(s: &str) -> Result<Vec<Vec<char>>, ValidErr<Vec<char>>> {
         })
         .lift()
         .at_least(1)
+        .const_over(|vec| vec.len())
         .collect::<Result<Vec<Vec<char>>, _>>()
 }
