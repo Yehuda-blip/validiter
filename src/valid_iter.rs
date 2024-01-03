@@ -13,7 +13,7 @@ pub trait Unvalidatable: Iterator + Sized {
 
 impl<T> Unvalidatable for T where T: Iterator + Sized {}
 
-pub trait ValidIter: Sized + Iterator + Iterator<Item = VResult<Self::BaseType>> {
+pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     type BaseType;
 
     fn at_most(self, max_count: usize) -> AtMost<Self>
