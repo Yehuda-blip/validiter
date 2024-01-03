@@ -7,7 +7,7 @@ use super::{at_most::AtMost, validatable::Validatable};
 
 pub trait Unvalidatable: Iterator + Sized {
     fn validate(self) -> Validatable<Self> {
-        Validatable { iter: self }
+        Validatable::new(self)
     }
 }
 

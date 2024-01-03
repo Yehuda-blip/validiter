@@ -2,7 +2,13 @@ use super::{valid_iter::ValidIter, valid_result::VResult};
 
 #[derive(Debug, Clone)]
 pub struct Validatable<I: Iterator> {
-    pub(crate) iter: I,
+    iter: I,
+}
+
+impl<I: Iterator> Validatable<I> {
+    pub(crate) fn new(iter: I) -> Validatable<I> {
+        Self { iter }
+    }
 }
 
 impl<I: Iterator> Iterator for Validatable<I> {
