@@ -3,6 +3,7 @@ use crate::{
     valid_result::{VResult, ValidErr},
 };
 
+#[derive(Debug, Clone)]
 pub struct ConstOver<I, A, M>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,

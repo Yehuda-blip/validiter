@@ -1,5 +1,6 @@
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
+#[derive(Debug, Clone)]
 pub struct LiftErrs<OkType, ErrType, I>
 where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized,

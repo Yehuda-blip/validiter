@@ -2,6 +2,7 @@ use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
+#[derive(Debug, Clone)]
 pub struct AtLeast<I>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,

@@ -1,5 +1,6 @@
 use super::{valid_iter::ValidIter, valid_result::VResult};
 
+#[derive(Debug, Clone)]
 pub struct Validatable<I: Iterator> {
     pub(crate) iter: I,
 }

@@ -1,7 +1,7 @@
 use std::{error::Error, fmt::{Debug, Display}};
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValidErr<E> {
     TooMany(E),
     TooFew,
