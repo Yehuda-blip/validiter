@@ -14,12 +14,10 @@ where
 
 impl<I, F> Ensure<I, F>
 where
-    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
+    I: Sized + ValidIter + Iterator<Item = VResult<I::BaseType>>,
     F: FnMut(&I::BaseType) -> bool,
 {
     pub(crate) fn new(iter: I, validation: F) -> Ensure<I, F>
-    where
-        I: Sized,
     {
         Ensure { iter, validation }
     }

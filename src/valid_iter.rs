@@ -13,19 +13,15 @@ pub trait Unvalidatable: Iterator + Sized {
 
 impl<T> Unvalidatable for T where T: Iterator + Sized {}
 
-pub trait ValidIter: Iterator {
+pub trait ValidIter: Sized + Iterator + Iterator<Item = VResult<Self::BaseType>> {
     type BaseType;
 
     fn at_most(self, max_count: usize) -> AtMost<Self>
-    where
-        Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
     {
         AtMost::<Self>::new(self, max_count)
     }
 
     fn at_least(self, min_count: usize) -> AtLeast<Self>
-    where
-        Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
     {
         AtLeast::<Self>::new(self, min_count)
     }
@@ -36,15 +32,13 @@ pub trait ValidIter: Iterator {
         upper_bound: <Self as ValidIter>::BaseType,
     ) -> Between<Self>
     where
-        Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
-        <Self as ValidIter>::BaseType: PartialOrd,
+        Self::BaseType: PartialOrd,
     {
         Between::<Self>::new(self, lower_bound, upper_bound)
     }
 
     fn ensure<F>(self, validation: F) -> Ensure<Self, F>
     where
-        Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
         F: FnMut(&<Self as ValidIter>::BaseType) -> bool,
     {
         Ensure::<Self, F>::new(self, validation)
@@ -52,7 +46,6 @@ pub trait ValidIter: Iterator {
 
     fn look_back<A, M, F>(self, extractor: M, validation: F) -> LookBack<Self, A, M, F, 1>
     where
-        Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
         A: Default,
         M: FnMut(&Self::BaseType) -> A,
         F: FnMut(&A, &Self::BaseType) -> bool,
@@ -66,7 +59,6 @@ pub trait ValidIter: Iterator {
         validation: F,
     ) -> LookBack<Self, A, M, F, N>
     where
-        Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
         A: Default,
         M: FnMut(&Self::BaseType) -> A,
         F: FnMut(&A, &Self::BaseType) -> bool,
@@ -76,7 +68,6 @@ pub trait ValidIter: Iterator {
 
     fn const_over<A, M>(self, extractor: M) -> ConstOver<Self, A, M>
     where
-        Self: Sized + ValidIter + Iterator<Item = VResult<Self::BaseType>>,
         A: PartialEq,
         M: FnMut(&Self::BaseType) -> A,
     {
