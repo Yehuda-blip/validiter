@@ -23,7 +23,7 @@ impl<E> Display for ValidErr<E> {
             ValidErr::LookBackFailed(_) => "ValidErr::LookBackFailed",
             ValidErr::BrokenConstant(_) => "ValidErr::BrokenConstant"
         };
-        write!(f, "{:?}", err_type_str)
+        write!(f, "{}", err_type_str)
     }
 }
 
