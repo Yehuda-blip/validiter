@@ -16,7 +16,7 @@ impl<I> AtMost<I>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
 {
-    pub fn new(iter: I, max_count: usize) -> AtMost<I>
+    pub(crate) fn new(iter: I, max_count: usize) -> AtMost<I>
     where
         I: Sized,
     {

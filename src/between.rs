@@ -18,7 +18,7 @@ where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     I::BaseType: PartialOrd,
 {
-    pub fn new(iter: I, lower_bound: I::BaseType, upper_bound: I::BaseType) -> Between<I>
+    pub(crate) fn new(iter: I, lower_bound: I::BaseType, upper_bound: I::BaseType) -> Between<I>
     where
         I: Sized,
     {

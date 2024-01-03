@@ -17,7 +17,7 @@ where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     F: FnMut(&I::BaseType) -> bool,
 {
-    pub fn new(iter: I, validation: F) -> Ensure<I, F>
+    pub(crate) fn new(iter: I, validation: F) -> Ensure<I, F>
     where
         I: Sized,
     {

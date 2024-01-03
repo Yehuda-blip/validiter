@@ -16,7 +16,7 @@ impl<I> AtLeast<I>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
 {
-    pub fn new(iter: I, min_count: usize) -> AtLeast<I>
+    pub(crate) fn new(iter: I, min_count: usize) -> AtLeast<I>
     where
         I: Sized,
     {
