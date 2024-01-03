@@ -28,8 +28,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
 
     fn between(
         self,
-        lower_bound: <Self as ValidIter>::BaseType,
-        upper_bound: <Self as ValidIter>::BaseType,
+        lower_bound: Self::BaseType,
+        upper_bound: Self::BaseType,
     ) -> Between<Self>
     where
         Self::BaseType: PartialOrd,
@@ -39,7 +39,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
 
     fn ensure<F>(self, validation: F) -> Ensure<Self, F>
     where
-        F: FnMut(&<Self as ValidIter>::BaseType) -> bool,
+        F: FnMut(&Self::BaseType) -> bool,
     {
         Ensure::<Self, F>::new(self, validation)
     }
