@@ -18,8 +18,7 @@ where
     I: Sized + ValidIter + Iterator<Item = VResult<I::BaseType>>,
     I::BaseType: PartialOrd,
 {
-    pub(crate) fn new(iter: I, lower_bound: I::BaseType, upper_bound: I::BaseType) -> Between<I>
-    {
+    pub(crate) fn new(iter: I, lower_bound: I::BaseType, upper_bound: I::BaseType) -> Between<I> {
         Between {
             iter,
             lower_bound,
@@ -37,7 +36,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(Ok(val)) => match self.lower_bound <= val && val < self.upper_bound {
+            Some(Ok(val)) => match self.lower_bound <= val && val <= self.upper_bound {
                 true => Some(Ok(val)),
                 false => Some(Err(ValidErr::OutOfBounds(val))),
             },
@@ -93,5 +92,33 @@ mod tests {
             Err(ValidErr::OutOfBounds(oob)) => assert!(oob.is_nan()),
             _ => panic!("unexpected value in at least"),
         }
+    }
+
+    #[test]
+    fn test_between_is_range_inclusive() {
+        let results: Vec<_> = (0..=4).validate().between(1, 3).collect();
+        assert_eq!(
+            results,
+            [
+                Err(ValidErr::OutOfBounds(0)),
+                Ok(1),
+                Ok(2),
+                Ok(3),
+                Err(ValidErr::OutOfBounds(4))
+            ]
+        )
+    }
+
+    #[test]
+    fn test_between_is_capable_of_allowing_single_value() {
+        let results: Vec<_> = (0..=2).validate().between(1, 1).collect();
+        assert_eq!(
+            results,
+            [
+                Err(ValidErr::OutOfBounds(0)),
+                Ok(1),
+                Err(ValidErr::OutOfBounds(2))
+            ]
+        )
     }
 }
