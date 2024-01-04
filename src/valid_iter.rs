@@ -5,17 +5,18 @@ use crate::{
 
 use super::{at_most::AtMost, validatable::Validatable};
 
-/// The trait that allows sending iterators to the `ValidIter type.
+/// The trait that allows sending iterators to the [`ValidIter`] type.
 /// While it is not sealed, you should probably not implement it
 /// unless you want to experiment.
 ///
-/// When you use this trait, all iterators have the method validate, and
-/// can turn to `ValidIter` iterators.
+/// When you use this trait, all iterators have the method [`validate`](Unvalidatable::validate), and
+/// can turn to [`ValidIter`] iterators.
+///
 pub trait Unvalidatable: Iterator + Sized {
-    /// Turns an iterator over `T` into a `ValidIter` over `VResult<T>`.
+    /// Turns an iterator over `T` into a [`ValidIter`] over [`VResult<T>`].
     ///
     /// In order to call validation adapters on an iterator, you must
-    /// first call `validate()`, because only a `ValidIter` can be validated.
+    /// first call `validate`, because only a [`ValidIter`] can be validated.
     ///
     /// # Examples
     /// ```compile_fail
@@ -29,7 +30,7 @@ pub trait Unvalidatable: Iterator + Sized {
     /// let mut iter = (1..).validate().at_least(3);
     /// ```
     ///
-    /// `validate` could technically be called on a `ValidIter` if
+    /// `validate` could technically be called on a [`ValidIter`] if
     /// you want to write some meta-validation:
     /// ```
     /// # use crate::validiter::Unvalidatable;
@@ -57,9 +58,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// `at_most(n)` yeilds `Ok(element)` values until `n` elements are yielded,
     /// or the end of the iterator is reached. If values are still in the iteration,
-    /// they will be wrapped in `Err(ValidErr::TooMany(element))`.
+    /// they will be wrapped in [`Err(ValidErr::TooMany(element))`].
     ///
-    /// Elements already wrapped in `Err(ValidErr::<some valid err variant>` will not be
+    /// Elements already wrapped in [`Err(ValidErr::<some valid err variant>`] will not be
     /// counted towards reaching the `n` elements upper bound.
     ///
     /// # Examples
@@ -77,7 +78,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// Generally, `at_most` could be thought of as a not-quite-as-useful
-    /// complement to the `at_least` adapter. It could also be used to ensure
+    /// complement to the [`at_least`](crate::ValidIter::at_least) adapter. It could also be used to ensure
     /// that collecting an iterator does not result in an unexpected amount
     /// of values in-memory:
     /// ```
@@ -100,6 +101,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Ok(2)));
     /// assert_eq!(iter.next(), Some(Ok(3))); // the 5th element was not wrapped in Err()!
     /// ```
+    ///
+    /// [`Err(ValidErr::TooMany(element))`](crate::valid_result::ValidErr)
+    ///
     fn at_most(self, n: usize) -> AtMost<Self> {
         AtMost::<Self>::new(self, n)
     }
@@ -108,13 +112,13 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// `at_least(n)` yields `Ok(element)` values until the iteration ends. If the
     /// number of values in the iteration is less than `n`, a new element would be
-    /// added to the end of the iteration with the value `Err(ValidErr::TooFew)`.
+    /// added to the end of the iteration with the value [`Err(ValidErr::TooFew)`].
     ///
     /// The `at_least` adapter cannot handle short-circuiting of iterators, so
     /// iterations such as `(0..10).validate().at_least(100).take(5)` will not
     /// fail.
     ///
-    /// Elements already wrapped in `Err(ValidErr::<some valid err variant>)` will not be
+    /// Elements already wrapped in [`Err(ValidErr::<some valid err variant>)`] will not be
     /// counted towards reaching the `n` elements lower bound.
     ///
     /// # Examples
@@ -158,15 +162,17 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Ok(2)));
     /// assert_eq!(iter.next(), Some(Err(ValidErr::TooFew))); // err element added, because the first element does not count.
     /// ```
+    ///
+    /// [`Err(ValidErr::TooFew)`](crate::valid_result::ValidErr)
     fn at_least(self, n: usize) -> AtLeast<Self> {
         AtLeast::<Self>::new(self, n)
     }
 
-    /// Fails a validation iterator on `PartialOrd` elements if one the elements
+    /// Fails a validation iterator on [`PartialOrd`] elements if one the elements
     /// is out of the argument bounds.
     ///
     /// `between(lowest, highest)` wraps any value `val` which violates the constraint
-    /// `lowest <= val && val <= highest` in a `Err(ValidErr::OutOfBounds(val))`.
+    /// `lowest <= val && val <= highest` in a [`Err(ValidErr::OutOfBounds(val))`].
     /// Otherwise, `Ok(val)` is yielded.
     ///
     /// Elements already wrapped in type `Err(ValidErr::<some valid err variant>)` are ignored.
@@ -205,6 +211,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///     _ => {panic!()}
     /// }
     /// ```
+    ///
+    /// [`Err(ValidErr::OutOfBounds(val))`](crate::valid_result::ValidErr)
     fn between(self, lower_bound: Self::BaseType, upper_bound: Self::BaseType) -> Between<Self>
     where
         Self::BaseType: PartialOrd,
@@ -219,7 +227,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// a boolean test as an argument and applies it to each of the
     /// elements in the iteration. If the test returns `true`, the element
     /// is wrapped in `Ok(element)`. Otherwise, it is wrapped in
-    /// `Err(ValidErr::Invalid(element))`.
+    /// [`Err(ValidErr::Invalid(element))`].
     ///
     /// Values of type `Err(ValidErr::<some valid err variant>)` are ignored.
     ///
@@ -265,6 +273,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(3))));
     /// ```
     ///
+    /// [`Err(ValidErr::Invalid(element))`](crate::valid_result::ValidErr)
     fn ensure<F>(self, validation: F) -> Ensure<Self, F>
     where
         F: FnMut(&Self::BaseType) -> bool,
@@ -275,7 +284,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// Tests each element in the iteration based on the previous element.
     ///
     /// `look_back(extractor, validation)` is sugar for calling
-    /// `look_back_n<1, _, _, _>::(extractor, validation)`. It takes
+    /// [`look_back_n<1, _, _, _>::(extractor, validation)`]. It takes
     /// 2 closure arguments:
     /// 1. `extractor` - a mapping of iterator elements to some extracted
     /// value.
@@ -284,7 +293,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// this value.
     ///
     /// Elements which fail the `validation` test will be wrapped in
-    /// `Err(ValidErr::LookBackFailed(element))`.
+    /// [`Err(ValidErr::LookBackFailed(element))`].
     ///
     /// Elements already wrapped in a `Err(ValidErr::<some valid err variant>)`
     /// are ignored by both the `extractor` and the `validation` closures.
@@ -320,6 +329,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Ok(1.0 / 4.0)));
     /// assert_eq!(iter.next(), Some(Ok(-1.0 / 8.0)));
     /// ```
+    ///
+    /// [`look_back_n<1, _, _, _>::(extractor, validation)`](ValidIter::look_back_n)
+    /// [`Err(ValidErr::LookBackFailed(element))`](crate::valid_result::ValidErr)
     fn look_back<A, M, F>(self, extractor: M, validation: F) -> LookBack<Self, A, M, F, 1>
     where
         A: Default,
@@ -346,7 +358,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// 1. Assuming there was a previous Nth element (we'll call it `p_nth`),
     /// the current element is tested for `validation(extractor(p_nth), element)`.
     /// 2. If the element passed the test, it is wrapped in `Ok(element)`.
-    /// otherwise it wrapped in `Err(ValidErr::LookBackFailed(element))`, and
+    /// otherwise it wrapped in [`Err(ValidErr::LookBackFailed(element))`], and
     /// will not be used to test the next nth element (that is, the next nth
     /// element would be compared with the previous value).
     ///
@@ -405,6 +417,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed('b'))));
     /// assert_eq!(iter.next(), Some(Ok('c')));
     /// ```
+    ///
+    /// [`Err(ValidErr::LookBackFailed(element))`](crate::valid_result::ValidErr)
     fn look_back_n<const N: usize, A, M, F>(
         self,
         extractor: M,
@@ -418,14 +432,14 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
         LookBack::new(self, extractor, validation)
     }
 
-    /// Fails an iteration if the `extractor` give the same result
+    /// Fails an iteration if `extractor` does not give the same result
     /// for all elements.
     ///
     /// `const_over(extractor)` takes a closure argument that computes
     /// some value for each element in iteration. If for some element
     /// this results in a value which is not equal to value computed
     /// from the first element, this element is wrapped in
-    /// `Err(ValidErr::BrokenConstant(element))`. Otherwise, the element
+    /// [`Err(ValidErr::BrokenConstant(element))`]. Otherwise, the element
     /// is wrapped in `Ok(element)`. The first valid element is always wrapped
     /// in `Ok`.
     ///
@@ -460,6 +474,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid('2'))));
     /// assert_eq!(iter.next(), Some(Err(ValidErr::BrokenConstant('c'))));
     /// ```
+    ///
+    /// [`Err(ValidErr::BrokenConstant(element))`](crate::valid_result::ValidErr)
     fn const_over<A, M>(self, extractor: M) -> ConstOver<Self, A, M>
     where
         A: PartialEq,

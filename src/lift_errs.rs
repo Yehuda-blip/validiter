@@ -47,7 +47,7 @@ pub trait ErrLiftable<OkType, ErrType>:
     Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized
 {
     /// Turns an iterator over `Result<OkType, ValidErr<ErrType>>>`
-    /// into a [`ValidIter`] over [`VResult<OkType>`] by dropping all
+    /// into a [`ValidIter`] over [`VResult<OkType>`](crate::valid_result::VResult) by dropping all
     /// the [`ValidErr<ErrType>`] elements and replacing them with
     /// [`ValidErr<OkType>::Lifted`].
     ///
@@ -56,9 +56,9 @@ pub trait ErrLiftable<OkType, ErrType>:
     /// causes a change in the underlying type of element (usually,
     /// collecting an iterator).
     /// 2. When as a result of err mapping, the underlying type is
-    /// a [`VResult`] but the iterator itself is not a [`ValidIter`].
+    /// a [`VResult`](crate::valid_result::VResult) but the iterator itself is not a [`ValidIter`].
     ///
-    /// It's purpose is similar to the [`validate`] method - sending
+    /// It's purpose is similar to the [`validate`](crate::valid_iter::Unvalidatable::validate) method - sending
     /// an iterator to the [`ValidIter`] type.
     ///
     /// This would be better explained with an example:
@@ -87,10 +87,9 @@ pub trait ErrLiftable<OkType, ErrType>:
     /// assert_eq!(mat, Err(ValidErr::Lifted)); // the element at pos [1][1] would have been negative, failing the ensure validation
     ///
     /// ```
-    /// 
+    ///
     /// [`VResult<OkType>`](crate::valid_result::VResult)
-    /// [`VResult`](crate::valid_result::VResult)
-    /// [`validate`](crate::valid_iter::Unvalidatable::validate) 
+    /// [`validate`](crate::valid_iter::Unvalidatable::validate)
     fn lift_errs(self) -> LiftErrs<OkType, ErrType, Self> {
         LiftErrs::new(self)
     }
