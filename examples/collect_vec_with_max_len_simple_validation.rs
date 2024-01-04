@@ -1,4 +1,4 @@
-use validiter::valid_iter::{Unvalidatable, ValidIter};
+use validiter::{Unvalidatable, ValidIter};
 
 extern crate validiter;
 

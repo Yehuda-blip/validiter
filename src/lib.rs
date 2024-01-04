@@ -3,11 +3,15 @@ mod at_most;
 mod between;
 mod const_over;
 mod ensure;
-pub mod lift_errs;
+mod lift_errs;
 mod look_back;
-pub mod valid_iter;
-pub mod valid_result;
+mod valid_iter;
+mod valid_result;
 mod validatable;
+
+pub use lift_errs::ErrLiftable;
+pub use valid_iter::{Unvalidatable, ValidIter};
+pub use valid_result::{VResult, ValidErr};
 
 #[cfg(test)]
 mod tests {

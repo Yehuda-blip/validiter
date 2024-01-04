@@ -6,17 +6,17 @@ use crate::{
 use super::{at_most::AtMost, validatable::Validatable};
 
 /// The trait that allows sending iterators to the `ValidIter type.
-/// While it is not sealed, you should probably not implement it 
+/// While it is not sealed, you should probably not implement it
 /// unless you want to experiment.
-/// 
+///
 /// When you use this trait, all iterators have the method validate, and
-/// can turn to `ValidIter` iterators. 
+/// can turn to `ValidIter` iterators.
 pub trait Unvalidatable: Iterator + Sized {
     /// Turns an iterator over `T` into a `ValidIter` over `VResult<T>`.
-    /// 
+    ///
     /// In order to call validation adapters on an iterator, you must
     /// first call `validate()`, because only a `ValidIter` can be validated.
-    /// 
+    ///
     /// # Examples
     /// ```compile_fail
     /// // this does not compile
@@ -24,21 +24,21 @@ pub trait Unvalidatable: Iterator + Sized {
     /// ```
     /// ```
     /// // this compiles
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut iter = (1..).validate().at_least(3);
     /// ```
-    /// 
+    ///
     /// `validate` could technically be called on a `ValidIter` if
     /// you want to write some meta-validation:
     /// ```
-    /// # use crate::validiter::valid_iter::Unvalidatable;
+    /// # use crate::validiter::Unvalidatable;
     /// #
     /// let mut meta_validiter = (1..)
     ///                             .validate()
     ///                             // ...validations
     ///                             .validate();
-    /// 
+    ///
     /// assert_eq!(meta_validiter.next(), Some(Ok(Ok(1))));
     /// ```
     fn validate(self) -> Validatable<Self> {
@@ -66,7 +66,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let a = [1, 2, 3];
     /// let mut iter = a.iter().validate().at_most(2);
@@ -81,7 +81,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// that collecting an iterator does not result in an unexpected amount
     /// of values in-memory:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut collection_result: Result<Vec<_>, _> = (0..).take(1_000_000_000).validate().at_most(10).collect::<Result<_, _>>();
     ///
@@ -90,7 +90,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// `at_most` will not account for validation errors already in the iteration:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut iter = (-1..=3).validate().between(0, 10).at_most(4);
     ///
@@ -121,7 +121,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let a = [1, 2, 3];
     /// let mut iter = a.iter().validate().at_least(4);
@@ -136,7 +136,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// `at_least` could be used to ensure that a vector created from an iterator
     /// has a value in some index:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let iter = (0..=2); // iteration is too short, no 4th element!
     ///
@@ -149,7 +149,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     /// `at_least` will not account for validation errors already in the iteration:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut iter = (0..=2).validate().between(1, 10).at_least(3);
     ///
@@ -175,7 +175,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let a = [1, 2, 3, 4];
     /// let mut iter = a.iter().validate().between(&2, &3);
@@ -188,7 +188,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Partial-Equality is also supported:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let a = [f64::NAN];
     /// let mut iter = a.iter().validate().between(&2.0, &3.0);
@@ -227,7 +227,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut iter = (0..=3).validate().ensure(|i| i % 2 == 0);
     ///
@@ -240,7 +240,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// You might want to chain `ensure` validations to create
     /// a more complex test:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut iter = (0..=3)
     ///             .validate()
@@ -255,7 +255,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// `ensure` ignores error elements:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut iter = (0..=3).validate().between(2, 3).ensure(|i| i % 2 == 0);
     ///
@@ -293,7 +293,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// // is the iteration ordered?
     /// let mut iter = (0..=2).chain(1..=1).validate().look_back(|i| *i, |prev, i| prev <= i);
@@ -306,7 +306,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Or maybe a slightly more exotic test:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// // Does the iteration converge?
     /// const EPSILON: f64 = 0.0001;
@@ -370,7 +370,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut iter = (0..=2).chain(2..=4)
     ///                     .validate()
@@ -387,7 +387,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// `look_back_n` could be used to force an iteration to cycle through
     /// a sequence of predetermined properties:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let sequence = "abc";
     /// let s = "abfbc";
@@ -433,7 +433,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let uppercase = "ABc";
     /// let mut iter = uppercase.chars().validate().const_over(|c| c.is_uppercase());
@@ -445,7 +445,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// `const_over` ignores validation errors:
     /// ```
-    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let uppercase = "1AB2c";
     /// let mut iter = uppercase

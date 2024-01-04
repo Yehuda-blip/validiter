@@ -1,6 +1,6 @@
 extern crate validiter;
 
-use validiter::valid_iter::{Unvalidatable, ValidIter};
+use validiter::{Unvalidatable, ValidIter};
 
 fn main() {
     (0..10)

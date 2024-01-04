@@ -41,7 +41,7 @@ where
 
 /// The trait defining iterators that can be transformed into
 /// a `ValidIter` without calling `validate`. While it is not
-/// sealed, you should probably not implement it unless you 
+/// sealed, you should probably not implement it unless you
 /// want to experiment.
 pub trait ErrLiftable<OkType, ErrType>:
     Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized
@@ -64,7 +64,7 @@ pub trait ErrLiftable<OkType, ErrType>:
     /// This would be better explained with an example:
     /// # Examples
     /// ```
-    /// # use crate::validiter::{valid_iter::ValidIter, lift_errs::ErrLiftable, valid_result::ValidErr};
+    /// # use crate::validiter::{ValidIter, ErrLiftable, ValidErr};
     /// #
     /// // is this csv a matrix of positive values?
     /// let csv = "1.2, 3.0

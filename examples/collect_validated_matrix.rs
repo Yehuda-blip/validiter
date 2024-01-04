@@ -1,8 +1,4 @@
-use validiter::{
-    lift_errs::ErrLiftable,
-    valid_iter::{Unvalidatable, ValidIter},
-    valid_result::ValidErr,
-};
+use validiter::{ErrLiftable, Unvalidatable, ValidErr, ValidIter};
 
 fn main() {
     let ok_s = "abcd

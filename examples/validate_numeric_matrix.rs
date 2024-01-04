@@ -1,4 +1,4 @@
-use validiter::{lift_errs::ErrLiftable, valid_iter::ValidIter, valid_result::ValidErr};
+use validiter::{ErrLiftable, ValidErr, ValidIter};
 
 fn main() {
     let csv = "1.2, 3.0
