@@ -10,6 +10,7 @@ pub enum ValidErr<E> {
     Lifted,
     LookBackFailed(E),
     BrokenConstant(E),
+    Mapped
 }
 
 impl<E> Display for ValidErr<E> {
@@ -21,7 +22,8 @@ impl<E> Display for ValidErr<E> {
             ValidErr::Invalid(_) => "ValidErr::Invalid",
             ValidErr::Lifted => "ValidErr::Lifted",
             ValidErr::LookBackFailed(_) => "ValidErr::LookBackFailed",
-            ValidErr::BrokenConstant(_) => "ValidErr::BrokenConstant"
+            ValidErr::BrokenConstant(_) => "ValidErr::BrokenConstant",
+            ValidErr::Mapped => "ValidErr::Mapped"
         };
         write!(f, "{}", err_type_str)
     }

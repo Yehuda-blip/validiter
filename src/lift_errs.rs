@@ -42,6 +42,47 @@ where
 pub trait ErrLiftable<OkType, ErrType>:
     Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized
 {
+    /// Turns an iterator over `Result<OkType, ValidErr<ErrType>>>`
+    /// into a `ValidIter` over `VResult<OkType>` by dropping all
+    /// the `ValidErr<ErrType>` elements and replacing them with
+    /// `ValidErr<OkType>::Lifted`.
+    /// 
+    /// `lift_errs` is useful in 2 scenarios:
+    /// 1. When some opertion on the iterator
+    /// causes a change in the underlying type of element (usually,
+    /// collecting an iterator).
+    /// 2. When as a result of err mapping, the underlying type is
+    /// a `VResult` but the iterator itself is not a `ValidIter`.
+    /// 
+    /// It's purpose is similar to the `validate` method - sending
+    /// an iterator to the `ValidIter` type.
+    /// 
+    /// This would be better explained with an example:
+    /// # Examples
+    /// ```
+    /// # use crate::validiter::{valid_iter::ValidIter, lift_errs::ErrLiftable, valid_result::ValidErr};
+    /// #
+    /// // is this csv a matrix of positive values?
+    /// let csv = "1.2, 3.0
+    ///            4.2, -0.5";
+    /// let mat = csv
+    ///             .lines()
+    ///             .map( |line| {
+    ///                 line.split(",")
+    ///                 .map(|s| s.trim())
+    ///                 .map(|s| s.parse::<f64>().map_err(|_| ValidErr::<f64>::Mapped))
+    ///                 // the iterator is over VResult<f64>, but map is not a ValidIter!
+    ///                 .lift_errs()
+    ///                 .ensure(|f| *f >= 0.0)
+    ///                 .collect::<Result<Vec<f64>, ValidErr<f64>>>()
+    ///             }) 
+    ///             // OkType is a vector, but ErrType is f64!
+    ///             .lift_errs()
+    ///             .collect::<Result<Vec<_>, _>>(); // now ErrType is also a Vec<f64>
+    /// 
+    /// assert_eq!(mat, Err(ValidErr::Lifted)); // the element at pos [1][1] would have been negative, failing the ensure validation
+    ///
+    /// ```
     fn lift_errs(self) -> LiftErrs<OkType, ErrType, Self> {
         LiftErrs::new(self)
     }
