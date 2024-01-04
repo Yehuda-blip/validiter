@@ -1,18 +1,33 @@
+Are you a rusty little thing?
+
+Do you want to write 10000-lines functions and just chain iterators forever? 
+
+Do you like to watch the compiler cry while trying to figure out WTF is a `Fold<Map<Filter<TakeWhile<Map<StepBy<Zip<SkipWhile...`
+
+Do you get insecure about your ugly, disgusting, _imperative_ code when your'e next to Haskellers?
+
+Introducing...
+# validiter
+
 Validiter is meant to provide a nice rusty api for performing validations on iterators. Here is a very simple example for an adapter it provides:
 ```
-(0..10).at_most(7) // wraps the first 7 elements in Ok(i32) and the rest in a Err(ValidErr::TooMany(i32))
+(0..10).validate().at_most(7) // wraps the first 7 elements in Ok(i32) and the rest in a Err(ValidErr::TooMany(i32))
 ```
 
-Ideally, the adapters in the crate should allow for validiter result type propogation, so that something like:
-```
-(0..10).between(2, 7).at_most(3)
-```
-would return an iterator where the first 2 elements are an `ValidErr::OutOfBound(i32)` type, the next 3 are `Ok(i32)`, then 2 `ValidErr::TooMany(i32)` and finally 3 more `ValidErr::OutOfBounds(i32)`,
-rather than wrapping the inner values twice in a double result. Unfortunately, this straightforward behaviour is probably impossible without the "trait specialization" feature of unstable rust, 
-which would allow us to wrap only non `Result<_, ValidErr<_>>` types and provide specialized behaviour for already wrapped types. Whether this drawback is beneficial overall or not (it probably is), 
-it forces us to create our own `ValidationSpace` type system, to which we send generic iterators, and in which every element in the iterator is already wrapped in the specialized `ValidResult` type.
-And so together with the validation adapters, we need to provide senders to the "Any Type Space".
+Unfortunately, our beautiful and pure functions are often fouled by unsanitized data. Until validiter came along, this meant that sanitizing data
+could not be part of a large, LAZY iterator chain (unless you add side effects to something that really shouldn't have them). This is where validiter
+comes to help.
+All in all, this crate is pretty simple - take an iterator, and declare that you want to validate it. There are 2 ways to do so:
+1. Import `validiter::Unvalidatable` to your scope, and call `validate()` on said iterator - you can now call all of the `ValidIter` type adapters.
+2. A little more scuffed, but also valid - if your iterator is already yielding results, you can map them to `ValidIter::ValidErr<the-type-you-want>::Mapped`,
+   then import `validiter::ErrLiftable` into your scope and call `lift_errs` on the iterator. This will also allow you to call `ValidIter` methods.
 
+There are some adapters already in the crate, that should handle most use cases. The things that validiter does not (yet) support and you might want, but won't
+get, are:
+- Error messages inside the ValidErr type.
+- Tight compatability with the `anyhow` (https://docs.rs/anyhow/latest/anyhow/) crate.
+
+I'd love to hear suggestions about anything - ESPECIALLY if you think I'm doing somrthing wrong in the definition or implementation of this crate.
 
 
 ## License
