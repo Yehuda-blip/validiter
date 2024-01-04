@@ -215,7 +215,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Ok(2)));
     /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(3))));
     /// ```
-    /// 
+    ///
     /// `ensure` ignores error elements:
     /// ```
     /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
@@ -236,37 +236,37 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     }
 
     /// Tests each element in the iteration based on the previous element.
-    /// 
-    /// `look_back(extractor, validation)` is sugar for calling 
-    /// `look_back_n<1, _, _, _>::(extractor, validation)`. It takes 
+    ///
+    /// `look_back(extractor, validation)` is sugar for calling
+    /// `look_back_n<1, _, _, _>::(extractor, validation)`. It takes
     /// 2 closure arguments:
     /// 1. `extractor` - a mapping of iterator elements to some extracted
     /// value.
-    /// 2. `validation` - a test which accepts the value extracted from 
+    /// 2. `validation` - a test which accepts the value extracted from
     /// the previous element, and tests the current element based on
     /// this value.
-    /// 
+    ///
     /// Elements which fail the `validation` test will be wrapped in
     /// `Err(ValidErr::LookBackFailed(element))`.
-    /// 
+    ///
     /// Elements already wrapped in a `Err(ValidErr::<some valid err variant>)`
     /// are ignored by both the `extractor` and the `validation` closures.
-    /// 
+    ///
     /// Examples:
-    /// 
+    ///
     /// Basic usage:
     /// ```
     /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
     /// #
     /// // is the iteration ordered?
     /// let mut iter = (0..=2).chain(1..=1).validate().look_back(|i| *i, |prev, i| prev <= i);
-    /// 
+    ///
     /// assert_eq!(iter.next(), Some(Ok(0))); // first value is never tested
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2)));
     /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed(1))));
     /// ```
-    /// 
+    ///
     /// Or maybe a slightly more exotic test:
     /// ```
     /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
@@ -277,7 +277,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///                     .validate()
     ///                     .look_back(|i| i.abs(), |prev, i| prev * (1.0 - EPSILON) >= *i )
     ///                     .take(4);
-    /// 
+    ///
     /// assert_eq!(iter.next(), Some(Ok(1.0)));
     /// assert_eq!(iter.next(), Some(Ok(-1.0 / 2.0)));
     /// assert_eq!(iter.next(), Some(Ok(1.0 / 4.0)));
@@ -294,43 +294,43 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
 
     /// Fails an iteration if it does not conform to some cycling
     /// of properties.
-    /// 
+    ///
     /// `look_back_n::<N, _, _, _>(extractor, validation)` takes 3
     /// arguments:
     /// 1. `N` - a constant `usize` describing a cycle length
     /// 2. `extractor` - a mapping of iterator elements to some extracted
     /// value.
-    /// 3. `validation` - a test which accepts the value extracted from 
+    /// 3. `validation` - a test which accepts the value extracted from
     /// the Nth preceding element, and tests the current element based
     /// on this value.
-    /// 
+    ///
     /// Each iterator element wrapped in `Ok(element)` gets processed in
     /// these 2 ways:
     /// 1. Assuming there was a previous Nth element (we'll call it `p_nth`),
     /// the current element is tested for `validation(extractor(p_nth), element)`.
     /// 2. If the element passed the test, it is wrapped in `Ok(element)`.
-    /// otherwise it wrapped in `Err(ValidErr::LookBackFailed(element))`, and 
+    /// otherwise it wrapped in `Err(ValidErr::LookBackFailed(element))`, and
     /// will not be used to test the next nth element (that is, the next nth
     /// element would be compared with the previous value).
-    /// 
+    ///
     /// Because of the underlying implementation, you must specify the generic
     /// constant `N` when calling the method, and so you also must allow for
     /// the other 3 generic arguments to be inferred. Therefore calling this
-    /// method is a bit cumbersome: `look_back_n<N, _, _, _>(args...)` 
-    /// 
+    /// method is a bit cumbersome: `look_back_n<N, _, _, _>(args...)`
+    ///
     /// Important notes about the implementation:
     ///  - The adapter uses stack memory to store the values extracted
     /// from the previous n valid elements - so, ummm... maybe don't do
     /// `look_back_n<1_000_000_000, _, _, _>`
     ///  - The values actually stored inside the iterator memory are precomputed
     /// results of `extractor`. For example - if the iteration is over elements of
-    /// type `Vec<i32>` and the extractor closure is `|v| v.iter().sum()`, the 
+    /// type `Vec<i32>` and the extractor closure is `|v| v.iter().sum()`, the
     /// type of the stored value is `i32`, rather than `Vec<i32>`. This means
     /// that the `extractor` function is meant to act as a "pre-compute/compress"
     /// option when such functionality is required.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// Basic usage:
     /// ```
     /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
@@ -338,7 +338,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// let mut iter = (0..=2).chain(2..=4)
     ///                     .validate()
     ///                     .look_back_n::<2, _, _, _>(|i| *i, |prev, i| prev % 2 == i % 2);
-    /// 
+    ///
     /// assert_eq!(iter.next(), Some(Ok(0)));
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2))); // evaluated with respect to 0
@@ -346,7 +346,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Ok(3))); // also evaluated with respect to 1
     /// assert_eq!(iter.next(), Some(Ok(4))); // evaluted with respect to 2
     /// ```
-    /// 
+    ///
     /// `look_back_n` could be used to force an iteration to cycle through
     /// a sequence of predetermined properties:
     /// ```
@@ -354,11 +354,11 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// #
     /// let sequence = "abc";
     /// let s = "abfbc";
-    /// 
+    ///
     /// let mut iter = sequence.chars().chain(s.chars())
     ///                 .validate()
     ///                 .look_back_n::<3, _, _, _>(|c| *c, |p_nth, c| p_nth == c);
-    /// 
+    ///
     /// assert_eq!(iter.next(), Some(Ok('a')));
     /// assert_eq!(iter.next(), Some(Ok('b')));
     /// assert_eq!(iter.next(), Some(Ok('c')));
@@ -383,29 +383,29 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
 
     /// Fails an iteration if the `extractor` give the same result
     /// for all elements.
-    /// 
+    ///
     /// `const_over(extractor)` takes a closure argument that computes
-    /// some value for each element in iteration. If for some element 
+    /// some value for each element in iteration. If for some element
     /// this results in a value which is not equal to value computed
-    /// from the first element, this element is wrapped in 
+    /// from the first element, this element is wrapped in
     /// `Err(ValidErr::BrokenConstant(element))`. Otherwise, the element
     /// is wrapped in `Ok(element)`. The first valid element is always wrapped
     /// in `Ok`.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// Basic usage:
     /// ```
     /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
     /// #
     /// let uppercase = "ABc";
     /// let mut iter = uppercase.chars().validate().const_over(|c| c.is_uppercase());
-    /// 
+    ///
     /// assert_eq!(iter.next(), Some(Ok('A')));
     /// assert_eq!(iter.next(), Some(Ok('B')));
     /// assert_eq!(iter.next(), Some(Err(ValidErr::BrokenConstant('c'))));
     /// ```
-    /// 
+    ///
     /// `const_over` ignores validation errors:
     /// ```
     /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
@@ -416,7 +416,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///                     .validate()
     ///                     .ensure(|c| c.is_alphabetic())
     ///                     .const_over(|c| c.is_uppercase());
-    /// 
+    ///
     /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid('1'))));
     /// assert_eq!(iter.next(), Some(Ok('A')));
     /// assert_eq!(iter.next(), Some(Ok('B')));

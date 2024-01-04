@@ -1,4 +1,7 @@
-use std::{error::Error, fmt::{Debug, Display}};
+use std::{
+    error::Error,
+    fmt::{Debug, Display},
+};
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -10,7 +13,7 @@ pub enum ValidErr<E> {
     Lifted,
     LookBackFailed(E),
     BrokenConstant(E),
-    Mapped
+    Mapped,
 }
 
 impl<E> Display for ValidErr<E> {
@@ -23,7 +26,7 @@ impl<E> Display for ValidErr<E> {
             ValidErr::Lifted => "ValidErr::Lifted",
             ValidErr::LookBackFailed(_) => "ValidErr::LookBackFailed",
             ValidErr::BrokenConstant(_) => "ValidErr::BrokenConstant",
-            ValidErr::Mapped => "ValidErr::Mapped"
+            ValidErr::Mapped => "ValidErr::Mapped",
         };
         write!(f, "{}", err_type_str)
     }

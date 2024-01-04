@@ -24,8 +24,7 @@ where
     M: FnMut(&I::BaseType) -> A,
     F: FnMut(&A, &I::BaseType) -> bool,
 {
-    pub fn new(iter: I, extractor: M, validation: F) -> LookBack<I, A, M, F, N>
-    {
+    pub fn new(iter: I, extractor: M, validation: F) -> LookBack<I, A, M, F, N> {
         Self {
             iter,
             pos: 0,
