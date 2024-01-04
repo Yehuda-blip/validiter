@@ -5,7 +5,42 @@ use crate::{
 
 use super::{at_most::AtMost, validatable::Validatable};
 
+/// The trait that allows sending iterators to the `ValidIter type.
+/// While it is not sealed, you should probably not implement it 
+/// unless you want to experiment.
+/// 
+/// When you use this trait, all iterators have the method validate, and
+/// can turn to `ValidIter` iterators. 
 pub trait Unvalidatable: Iterator + Sized {
+    /// Turns an iterator over `T` into a `ValidIter` over `VResult<T>`.
+    /// 
+    /// In order to call validation adapters on an iterator, you must
+    /// first call `validate()`, because only a `ValidIter` can be validated.
+    /// 
+    /// # Examples
+    /// ```compile_fail
+    /// // this does not compile
+    /// let mut iter = (1..).at_least(3);
+    /// ```
+    /// ```
+    /// // this compiles
+    /// # use crate::validiter::{valid_iter::{Unvalidatable, ValidIter}, valid_result::ValidErr};
+    /// #
+    /// let mut iter = (1..).validate().at_least(3);
+    /// ```
+    /// 
+    /// `validate` could technically be called on a `ValidIter` if
+    /// you want to write some meta-validation:
+    /// ```
+    /// # use crate::validiter::valid_iter::Unvalidatable;
+    /// #
+    /// let mut meta_validiter = (1..)
+    ///                             .validate()
+    ///                             // ...validations
+    ///                             .validate();
+    /// 
+    /// assert_eq!(meta_validiter.next(), Some(Ok(Ok(1))));
+    /// ```
     fn validate(self) -> Validatable<Self> {
         Validatable::new(self)
     }
@@ -13,6 +48,8 @@ pub trait Unvalidatable: Iterator + Sized {
 
 impl<T> Unvalidatable for T where T: Iterator + Sized {}
 
+/// The trait defining a validatable iterator. While it is not sealed,
+/// you should probably not implement it unless you want to experiment.
 pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     type BaseType;
 

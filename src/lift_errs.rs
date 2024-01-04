@@ -39,6 +39,10 @@ where
     type BaseType = OkType;
 }
 
+/// The trait defining iterators that can be transformed into
+/// a `ValidIter` without calling `validate`. While it is not
+/// sealed, you should probably not implement it unless you 
+/// want to experiment.
 pub trait ErrLiftable<OkType, ErrType>:
     Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized
 {
