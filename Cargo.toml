@@ -2,6 +2,10 @@
 name = "validiter"
 version = "0.1.0"
 edition = "2021"
+description = "Iterator adapters for validating iterations"
+repository = "https://github.com/Yehuda-blip/validiter"
+keywords = [ "sanitize", "iterator", "validation", "error"]
+categories = ["data-structures"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
