@@ -40,9 +40,11 @@ where
 }
 
 /// The trait defining iterators that can be transformed into
-/// a [`ValidIter`](ValidIter) without calling [`validate`](crate::Unvalidatable::validate). While it is not
-/// sealed, you should probably not implement it unless you
-/// want to experiment.
+/// a [`ValidIter`](ValidIter) without calling [`validate`](crate::Unvalidatable::validate). 
+/// 
+/// This trait was not written to be implemented, but is not sealed. If you want 
+/// to allow converting some specific type to a [`ValidIter`], consider using this
+/// trait.
 pub trait ErrLiftable<OkType, ErrType>:
     Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized
 {

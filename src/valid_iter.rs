@@ -7,8 +7,8 @@ use super::{at_most::AtMost, validatable::Validatable};
 
 /// The trait that allows sending iterators to the [`ValidIter`] type.
 /// While it is not sealed, you should probably not implement it
-/// unless you want to experiment.
-///
+/// unless you're feeling experimental.
+/// 
 /// When you use this trait, all iterators have the method [`validate`](Unvalidatable::validate), and
 /// can turn to [`ValidIter`] iterators.
 ///
@@ -50,7 +50,7 @@ pub trait Unvalidatable: Iterator + Sized {
 impl<T> Unvalidatable for T where T: Iterator + Sized {}
 
 /// The trait defining a validatable iterator. While it is not sealed,
-/// you should probably not implement it unless you want to experiment.
+/// you should probably not implement it unless you're feeling experimental.
 pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     type BaseType;
 
@@ -58,9 +58,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// `at_most(n)` yeilds `Ok(element)` values until `n` elements are yielded,
     /// or the end of the iterator is reached. If values are still in the iteration,
-    /// they will be wrapped in [`Err(ValidErr::TooMany(element))`].
+    /// they will be wrapped in `Err(ValidErr::TooMany(element))`.
     ///
-    /// Elements already wrapped in [`Err(ValidErr::<some valid err variant>`] will not be
+    /// Elements already wrapped in `Err(ValidErr::<some valid err variant>)` will not be
     /// counted towards reaching the `n` elements upper bound.
     ///
     /// # Examples
@@ -112,13 +112,13 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// `at_least(n)` yields `Ok(element)` values until the iteration ends. If the
     /// number of values in the iteration is less than `n`, a new element would be
-    /// added to the end of the iteration with the value [`Err(ValidErr::TooFew)`].
+    /// added to the end of the iteration with the value `Err(ValidErr::TooFew)`.
     ///
     /// The `at_least` adapter cannot handle short-circuiting of iterators, so
     /// iterations such as `(0..10).validate().at_least(100).take(5)` will not
     /// fail.
     ///
-    /// Elements already wrapped in [`Err(ValidErr::<some valid err variant>)`] will not be
+    /// Elements already wrapped in `Err(ValidErr::<some valid err variant>)` will not be
     /// counted towards reaching the `n` elements lower bound.
     ///
     /// # Examples
@@ -172,7 +172,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// is out of the argument bounds.
     ///
     /// `between(lowest, highest)` wraps any value `val` which violates the constraint
-    /// `lowest <= val && val <= highest` in a [`Err(ValidErr::OutOfBounds(val))`].
+    /// `lowest <= val && val <= highest` in a `Err(ValidErr::OutOfBounds(val))`.
     /// Otherwise, `Ok(val)` is yielded.
     ///
     /// Elements already wrapped in type `Err(ValidErr::<some valid err variant>)` are ignored.
@@ -227,7 +227,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// a boolean test as an argument and applies it to each of the
     /// elements in the iteration. If the test returns `true`, the element
     /// is wrapped in `Ok(element)`. Otherwise, it is wrapped in
-    /// [`Err(ValidErr::Invalid(element))`].
+    /// `Err(ValidErr::Invalid(element))`.
     ///
     /// Values of type `Err(ValidErr::<some valid err variant>)` are ignored.
     ///
@@ -284,7 +284,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// Tests each element in the iteration based on the previous element.
     ///
     /// `look_back(extractor, validation)` is sugar for calling
-    /// [`look_back_n<1, _, _, _>::(extractor, validation)`]. It takes
+    /// [`look_back_n<1, _, _, _>::(extractor, validation)`](ValidIter::look_back_n). It takes
     /// 2 closure arguments:
     /// 1. `extractor` - a mapping of iterator elements to some extracted
     /// value.
@@ -293,7 +293,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// this value.
     ///
     /// Elements which fail the `validation` test will be wrapped in
-    /// [`Err(ValidErr::LookBackFailed(element))`].
+    /// `Err(ValidErr::LookBackFailed(element))`.
     ///
     /// Elements already wrapped in a `Err(ValidErr::<some valid err variant>)`
     /// are ignored by both the `extractor` and the `validation` closures.
@@ -358,14 +358,15 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// 1. Assuming there was a previous Nth element (we'll call it `p_nth`),
     /// the current element is tested for `validation(extractor(p_nth), element)`.
     /// 2. If the element passed the test, it is wrapped in `Ok(element)`.
-    /// otherwise it wrapped in [`Err(ValidErr::LookBackFailed(element))`], and
+    /// otherwise it wrapped in `Err(ValidErr::LookBackFailed(element))`, and
     /// will not be used to test the next nth element (that is, the next nth
     /// element would be compared with the previous value).
     ///
     /// Because of the underlying implementation, you must specify the generic
     /// constant `N` when calling the method, and so you also must allow for
     /// the other 3 generic arguments to be inferred. Therefore calling this
-    /// method is a bit cumbersome: `look_back_n<N, _, _, _>(args...)`
+    /// method is a bit cumbersome:
+    /// `look_back_n<N, _, _, _>(args...)`
     ///
     /// Important notes about the implementation:
     ///  - The adapter uses stack memory to store the values extracted
@@ -439,7 +440,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// some value for each element in iteration. If for some element
     /// this results in a value which is not equal to value computed
     /// from the first element, this element is wrapped in
-    /// [`Err(ValidErr::BrokenConstant(element))`]. Otherwise, the element
+    /// `Err(ValidErr::BrokenConstant(element))`. Otherwise, the element
     /// is wrapped in `Ok(element)`. The first valid element is always wrapped
     /// in `Ok`.
     ///
