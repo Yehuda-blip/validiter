@@ -41,7 +41,7 @@ where
                 true => None,
                 false => {
                     self.counter = self.min_count;
-                    Some(Err(ValidErr::TooFew))
+                    Some(Err(ValidErr::TooFew {msg: None}))
                 }
             },
             other => other,
@@ -70,7 +70,7 @@ mod tests {
             .enumerate()
             .for_each(|(i, res_i)| match res_i {
                 Ok(_) if i < 10 => {}
-                Err(ValidErr::TooFew) if i == 10 => {}
+                Err(ValidErr::TooFew { .. }) if i == 10 => {}
                 _ => panic!("unexpected value in at least adapter"),
             })
     }
@@ -119,7 +119,7 @@ mod tests {
             .enumerate()
             .for_each(|(i, res_i)| match res_i {
                 Ok(int) if int == i as i32 && i < 10 => {}
-                Err(ValidErr::TooFew) if i == 10 => {}
+                Err(ValidErr::TooFew{ .. }) if i == 10 => {}
                 _ => panic!("bad iteration after at least adapter failure"),
             })
     }
@@ -158,7 +158,7 @@ mod tests {
             .for_each(|(i, res_i)| {
                 match res_i {
                     Ok(_) if i < 10 => {},
-                    Err(ValidErr::TooFew) if i == 10 => {}
+                    Err(ValidErr::TooFew{ .. }) if i == 10 => {}
                     _ => panic!("did not fail the iteration in short circuit when last error element was not truncated")
                 }
             })

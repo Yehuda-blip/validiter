@@ -37,29 +37,86 @@ mod tests {
         assert_eq!(
             validation_results,
             [
-                Err(ValidErr::OutOfBounds(0)),
-                Err(ValidErr::OutOfBounds(1)),
+                Err(ValidErr::OutOfBounds {
+                    element: 0,
+                    msg: None
+                }),
+                Err(ValidErr::OutOfBounds {
+                    element: 1,
+                    msg: None
+                }),
                 Ok(2),
-                Err(ValidErr::Invalid(3)),
+                Err(ValidErr::Invalid {
+                    element: 3,
+                    msg: None
+                }),
                 Ok(4),
-                Err(ValidErr::Invalid(5)),
+                Err(ValidErr::Invalid {
+                    element: 5,
+                    msg: None
+                }),
                 Ok(6),
-                Err(ValidErr::TooMany(7)),
-                Err(ValidErr::TooMany(8)),
-                Err(ValidErr::TooMany(9)),
-                Err(ValidErr::TooMany(0)),
-                Err(ValidErr::TooMany(1)),
-                Err(ValidErr::TooMany(2)),
-                Err(ValidErr::TooMany(3)),
-                Err(ValidErr::TooMany(4)),
-                Err(ValidErr::TooMany(5)),
-                Err(ValidErr::TooMany(6)),
-                Err(ValidErr::TooMany(7)),
-                Err(ValidErr::TooMany(8)),
-                Err(ValidErr::TooMany(9)),
-                Err(ValidErr::BrokenConstant(-1)),
-                Err(ValidErr::LookBackFailed(1)),
-                Err(ValidErr::TooFew),
+                Err(ValidErr::TooMany {
+                    element: 7,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 8,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 9,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 0,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 1,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 2,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 3,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 4,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 5,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 6,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 7,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 8,
+                    msg: None
+                }),
+                Err(ValidErr::TooMany {
+                    element: 9,
+                    msg: None
+                }),
+                Err(ValidErr::BrokenConstant {
+                    element: -1,
+                    msg: None
+                }),
+                Err(ValidErr::LookBackFailed {
+                    element: 1,
+                    msg: None
+                }),
+                Err(ValidErr::TooFew { msg: None }),
             ]
         )
     }

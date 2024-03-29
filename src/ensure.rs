@@ -33,7 +33,7 @@ where
         match self.iter.next() {
             Some(Ok(val)) => match (self.validation)(&val) {
                 true => Some(Ok(val)),
-                false => Some(Err(ValidErr::Invalid(val))),
+                false => Some(Err(ValidErr::Invalid {element: val, msg: None})),
             },
             other => other,
         }
@@ -63,7 +63,7 @@ mod tests {
             .enumerate()
             .for_each(|(i, res_i)| match res_i {
                 Ok(int) if i % 2 == 0 && i as i32 == int => {}
-                Err(ValidErr::Invalid(int)) if i % 2 == 1 && i as i32 == int => {}
+                Err(ValidErr::Invalid {element, msg: None}) if i % 2 == 1 && i as i32 == element => {}
                 _ => panic!("unexpected value in ensure adapter"),
             })
     }

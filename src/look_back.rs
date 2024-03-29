@@ -69,7 +69,7 @@ where
                             self.pos += 1;
                             Some(Ok(val))
                         }
-                        false => Some(Err(ValidErr::LookBackFailed(val))),
+                        false => Some(Err(ValidErr::LookBackFailed{element: val, msg: None})),
                     }
                 } else {
                     self.value_store[self.pos] = (self.extractor)(&val);
@@ -125,10 +125,10 @@ mod tests {
                 Ok(2),
                 Ok(3),
                 Ok(4),
-                Err(ValidErr::LookBackFailed(2)),
-                Err(ValidErr::LookBackFailed(0)),
-                Err(ValidErr::LookBackFailed(1)),
-                Err(ValidErr::LookBackFailed(2)),
+                Err(ValidErr::LookBackFailed {element: 2, msg: None}),
+                Err(ValidErr::LookBackFailed {element: 0, msg: None}),
+                Err(ValidErr::LookBackFailed {element: 1, msg: None}),
+                Err(ValidErr::LookBackFailed {element: 2, msg: None}),
                 Ok(3),
                 Ok(4),
                 Ok(5),
@@ -218,8 +218,8 @@ mod tests {
             [
                 Ok(&0),
                 Ok(&0),
-                Err(ValidErr::LookBackFailed(&1)),
-                Err(ValidErr::LookBackFailed(&2)),
+                Err(ValidErr::LookBackFailed {element: &1, msg: None}),
+                Err(ValidErr::LookBackFailed {element: &2, msg: None}),
                 Ok(&0)
             ]
         )
@@ -239,10 +239,10 @@ mod tests {
                 Ok(&1),
                 Ok(&0),
                 Ok(&1),
-                Err(ValidErr::LookBackFailed(&1)),
+                Err(ValidErr::LookBackFailed {element: &1, msg: None}),
                 Ok(&0),
                 Ok(&1),
-                Err(ValidErr::LookBackFailed(&1)),
+                Err(ValidErr::LookBackFailed {element: &1, msg: None}),
                 Ok(&0),
                 Ok(&1),
             ]

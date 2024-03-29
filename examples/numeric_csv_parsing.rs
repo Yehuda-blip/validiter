@@ -22,7 +22,7 @@ fn main() {
                     // map the elements to f64 values
                     .map(|s| s.trim())
                     // if we get a parse error, we want to map it to our own error types - ValidErr<f64>
-                    .map(|s| s.parse::<f64>().map_err(|_| ValidErr::<f64>::Mapped))
+                    .map(|s| s.parse::<f64>().map_err(|_| ValidErr::<f64>::Mapped {msg: "could not parse f64".into()}))
                     // because 'Map' is not a 'ValidIter', we need to convert the underlying data structure type
                     .lift_errs() // the iterator is over VResult<f64>, but map is not a ValidIter!
                     // force non-empty rows
