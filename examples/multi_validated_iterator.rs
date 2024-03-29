@@ -7,7 +7,7 @@ fn main() {
     // some 'Unvalidatable' iterator, and then place restrictions
     // on the iteration. Notice that 'ValidErr' type errors are always
     // ignored by validiter adapters, so the order of validation
-    // placement matters, if the iteration fails - there might be 
+    // placement matters, if the iteration fails - there might be
     // ignored errors, on elements that already failed a different
     // validation.
     (0..10)

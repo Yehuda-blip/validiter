@@ -38,7 +38,10 @@ where
         match self.iter.next() {
             Some(Ok(val)) => match self.lower_bound <= val && val <= self.upper_bound {
                 true => Some(Ok(val)),
-                false => Some(Err(ValidErr::OutOfBounds { element: val, msg: None })),
+                false => Some(Err(ValidErr::OutOfBounds {
+                    element: val,
+                    msg: None,
+                })),
             },
             other => other,
         }
@@ -78,18 +81,33 @@ mod tests {
         assert_eq!(
             validated[0..validated.len() - 1],
             [
-                Err(ValidErr::OutOfBounds { element: &-1.3, msg: None }),
+                Err(ValidErr::OutOfBounds {
+                    element: &-1.3,
+                    msg: None
+                }),
                 Ok(&-0.3),
                 Ok(&0.7),
-                Err(ValidErr::OutOfBounds { element: &1.7, msg: None }),
-                Err(ValidErr::OutOfBounds{element: &f64::NEG_INFINITY, msg: None }),
-                Err(ValidErr::OutOfBounds{ element: &f64::INFINITY, msg: None})
+                Err(ValidErr::OutOfBounds {
+                    element: &1.7,
+                    msg: None
+                }),
+                Err(ValidErr::OutOfBounds {
+                    element: &f64::NEG_INFINITY,
+                    msg: None
+                }),
+                Err(ValidErr::OutOfBounds {
+                    element: &f64::INFINITY,
+                    msg: None
+                })
             ]
         );
         let nan_out_of_bounds = &validated[validated.len() - 1];
         match nan_out_of_bounds {
             Ok(_) => panic!("non ordered item validated as in bounds"),
-            Err(ValidErr::OutOfBounds {element, msg}) => {assert!(element.is_nan()); assert!(msg.is_none())},
+            Err(ValidErr::OutOfBounds { element, msg }) => {
+                assert!(element.is_nan());
+                assert!(msg.is_none())
+            }
             _ => panic!("unexpected value in at least"),
         }
     }
@@ -100,11 +118,17 @@ mod tests {
         assert_eq!(
             results,
             [
-                Err(ValidErr::OutOfBounds {element: 0, msg: None}),
+                Err(ValidErr::OutOfBounds {
+                    element: 0,
+                    msg: None
+                }),
                 Ok(1),
                 Ok(2),
                 Ok(3),
-                Err(ValidErr::OutOfBounds {element: 4, msg: None})
+                Err(ValidErr::OutOfBounds {
+                    element: 4,
+                    msg: None
+                })
             ]
         )
     }
@@ -115,9 +139,15 @@ mod tests {
         assert_eq!(
             results,
             [
-                Err(ValidErr::OutOfBounds {element:0, msg: None}),
+                Err(ValidErr::OutOfBounds {
+                    element: 0,
+                    msg: None
+                }),
                 Ok(1),
-                Err(ValidErr::OutOfBounds{element: 2, msg: None})
+                Err(ValidErr::OutOfBounds {
+                    element: 2,
+                    msg: None
+                })
             ]
         )
     }

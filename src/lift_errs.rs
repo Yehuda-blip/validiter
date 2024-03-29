@@ -25,7 +25,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(Err(_err_type)) => Some(Err(ValidErr::Lifted {msg: None})),
+            Some(Err(_err_type)) => Some(Err(ValidErr::Lifted { msg: None })),
             Some(Ok(ok_type)) => Some(Ok(ok_type)),
             None => None,
         }
@@ -40,9 +40,9 @@ where
 }
 
 /// The trait defining iterators that can be transformed into
-/// a [`ValidIter`](ValidIter) without calling [`validate`](crate::Unvalidatable::validate). 
-/// 
-/// This trait was not written to be implemented, but is not sealed. If you want 
+/// a [`ValidIter`](ValidIter) without calling [`validate`](crate::Unvalidatable::validate).
+///
+/// This trait was not written to be implemented, but is not sealed. If you want
 /// to allow converting some specific type to a [`ValidIter`], consider using this
 /// trait.
 pub trait ErrLiftable<OkType, ErrType>:
@@ -129,7 +129,7 @@ mod tests {
             })
             .lift_errs()
             .collect::<Result<Vec<Vec<char>>, _>>();
-        assert_eq!(error, Err(ValidErr::Lifted { msg: None}));
+        assert_eq!(error, Err(ValidErr::Lifted { msg: None }));
     }
 
     #[test]

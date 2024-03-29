@@ -41,7 +41,7 @@ where
                 true => None,
                 false => {
                     self.counter = self.min_count;
-                    Some(Err(ValidErr::TooFew {msg: None}))
+                    Some(Err(ValidErr::TooFew { msg: None }))
                 }
             },
             other => other,
@@ -119,7 +119,7 @@ mod tests {
             .enumerate()
             .for_each(|(i, res_i)| match res_i {
                 Ok(int) if int == i as i32 && i < 10 => {}
-                Err(ValidErr::TooFew{ .. }) if i == 10 => {}
+                Err(ValidErr::TooFew { .. }) if i == 10 => {}
                 _ => panic!("bad iteration after at least adapter failure"),
             })
     }

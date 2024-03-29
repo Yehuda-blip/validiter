@@ -8,7 +8,7 @@ use super::{at_most::AtMost, validatable::Validatable};
 /// The trait that allows sending iterators to the [`ValidIter`] type.
 /// While it is not sealed, you should probably not implement it
 /// unless you're feeling experimental.
-/// 
+///
 /// When you use this trait, all iterators have the method [`validate`](Unvalidatable::validate), and
 /// can turn to [`ValidIter`] iterators.
 ///

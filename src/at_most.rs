@@ -34,7 +34,10 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
             Some(Ok(val)) => match self.counter >= self.max_count {
-                true => Some(Err(ValidErr::TooMany { element: val, msg: None })),
+                true => Some(Err(ValidErr::TooMany {
+                    element: val,
+                    msg: None,
+                })),
                 false => {
                     self.counter += 1;
                     Some(Ok(val))
@@ -62,7 +65,7 @@ mod tests {
         (0..10).validate().at_most(5).for_each(|res_i| match res_i {
             Ok(i) => assert!(i < 5),
             Err(err_i) => match err_i {
-                ValidErr::TooMany {element, ..} => assert!(element >= 5),
+                ValidErr::TooMany { element, .. } => assert!(element >= 5),
                 _ => panic!("incorrect err for at most validator"),
             },
         })
@@ -95,7 +98,7 @@ mod tests {
                     _ => panic!("bad match for item {}: {:?}", i, res_i),
                 },
                 false => match res_i {
-                    Err(ValidErr::TooMany { element, ..}) if element == i as i32 => {}
+                    Err(ValidErr::TooMany { element, .. }) if element == i as i32 => {}
                     _ => panic!("bad match for item {}: {:?}", i, res_i),
                 },
             })
@@ -110,7 +113,7 @@ mod tests {
             .enumerate()
             .for_each(|(i, res_i)| match i < 2 {
                 true => assert!(matches!(res_i, Ok(_))),
-                false => assert!(matches!(res_i, Err(ValidErr::TooMany{ .. }))),
+                false => assert!(matches!(res_i, Err(ValidErr::TooMany { .. }))),
             })
     }
 }
