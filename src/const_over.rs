@@ -43,7 +43,10 @@ where
             Some(Ok(val)) => match &self.stored_value {
                 Some(expected_const) => match (self.extractor)(&val) == *expected_const {
                     true => Some(Ok(val)),
-                    false => Some(Err(ValidErr::BrokenConstant {element: val, msg: None})),
+                    false => Some(Err(ValidErr::BrokenConstant {
+                        element: val,
+                        msg: None,
+                    })),
                 },
                 None => {
                     self.stored_value = Some((self.extractor)(&val));
@@ -94,7 +97,15 @@ mod tests {
             .collect();
         assert_eq!(
             results,
-            [Ok(0), Ok(0), Ok(0), Err(ValidErr::BrokenConstant{element: 1, msg: None})]
+            [
+                Ok(0),
+                Ok(0),
+                Ok(0),
+                Err(ValidErr::BrokenConstant {
+                    element: 1,
+                    msg: None
+                })
+            ]
         )
     }
 
@@ -122,9 +133,15 @@ mod tests {
                 Ok([0]),
                 Ok([0]),
                 Ok([0]),
-                Err(ValidErr::BrokenConstant{element: [1], msg: None}),
+                Err(ValidErr::BrokenConstant {
+                    element: [1],
+                    msg: None
+                }),
                 Ok([0]),
-                Err(ValidErr::BrokenConstant{element:[2], msg: None})
+                Err(ValidErr::BrokenConstant {
+                    element: [2],
+                    msg: None
+                })
             ]
         )
     }
