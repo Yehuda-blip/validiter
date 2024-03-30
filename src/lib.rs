@@ -8,6 +8,7 @@ mod look_back;
 mod valid_iter;
 mod valid_result;
 mod validatable;
+mod msg;
 
 pub use lift_errs::ErrLiftable;
 pub use valid_iter::{Unvalidatable, ValidIter};

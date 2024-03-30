@@ -1,6 +1,6 @@
-use crate::{valid_iter::ValidIter, valid_result::ValidErr};
-
 use super::valid_result::VResult;
+use crate::msg::MsgPusher;
+use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 #[derive(Debug, Clone)]
 pub struct AtLeast<I>
@@ -22,6 +22,53 @@ where
             min_count,
             counter: 0,
         }
+    }
+
+    fn msg_push(
+        verr: ValidErr<<Self as ValidIter>::BaseType>,
+        msg: String,
+    ) -> ValidErr<<Self as ValidIter>::BaseType> {
+        match verr {
+            ValidErr::TooFew { msg: None } => ValidErr::TooFew { msg: Some(msg) },
+            other => other,
+        }
+    }
+
+    pub fn msg(
+        self,
+        msg: &'static str,
+    ) -> MsgPusher<
+        AtLeast<I>,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        MsgPusher::new(self, |verr| Self::msg_push(verr, msg.into()))
+    }
+
+    pub fn auto_msg(
+        self,
+    ) -> MsgPusher<
+        AtLeast<I>,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        let auto_msg = format!(
+            "not enough elements, should have at least {}",
+            self.min_count
+        );
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
+    }
+
+    pub fn auto_msg_plus(
+        self,
+        msg: &'static str,
+    ) -> MsgPusher<
+        AtLeast<I>,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        let auto_msg = format!(
+            "not enough elements, should have at least {} - {}",
+            self.min_count, msg
+        );
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
     }
 }
 
