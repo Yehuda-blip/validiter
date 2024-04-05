@@ -36,12 +36,13 @@ where
 
     pub fn msg(
         self,
-        msg: &'static str,
+        msg: &str,
     ) -> MsgPusher<
         AtLeast<I>,
         impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
     > {
-        MsgPusher::new(self, |verr| Self::msg_push(verr, msg.into()))
+        let msg = String::from(msg);
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, msg.to_owned()))
     }
 
     pub fn auto_msg(
@@ -59,7 +60,7 @@ where
 
     pub fn auto_msg_plus(
         self,
-        msg: &'static str,
+        msg: &str,
     ) -> MsgPusher<
         AtLeast<I>,
         impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
