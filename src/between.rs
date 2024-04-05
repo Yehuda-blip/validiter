@@ -1,4 +1,6 @@
-use crate::{valid_iter::ValidIter, valid_result::ValidErr};
+use std::fmt::{Debug, Display};
+
+use crate::{msg::MsgPusher, valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
@@ -24,6 +26,96 @@ where
             lower_bound,
             upper_bound,
         }
+    }
+
+    fn msg_push(
+        verr: ValidErr<<Self as ValidIter>::BaseType>,
+        msg: String,
+    ) -> ValidErr<<Self as ValidIter>::BaseType> {
+        match verr {
+            ValidErr::OutOfBounds { element, msg: None } => ValidErr::OutOfBounds {
+                element,
+                msg: Some(msg),
+            },
+            other => other,
+        }
+    }
+
+    pub fn msg(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        let msg = String::from(msg);
+        return MsgPusher::new(self, move |verr| Self::msg_push(verr, msg.to_owned()));
+    }
+
+    pub fn auto_msg(
+        self,
+    ) -> MsgPusher<
+        Self,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        <Self as ValidIter>::BaseType: Display,
+    {
+        let auto_msg = format!(
+            "element is out of valid bounds [{}, {}]",
+            self.lower_bound, self.upper_bound
+        );
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
+    }
+
+    pub fn auto_msg_plus(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        <Self as ValidIter>::BaseType: Display,
+    {
+        let auto_msg = format!(
+            "element is out of valid bounds [{}, {}] - {}",
+            self.lower_bound, self.upper_bound, msg
+        );
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
+    }
+
+    pub fn auto_msg_debug(
+        self,
+    ) -> MsgPusher<
+        Self,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        <Self as ValidIter>::BaseType: Debug,
+    {
+        let auto_msg = format!(
+            "element is out of valid bounds [{:?}, {:?}]",
+            self.lower_bound, self.upper_bound
+        );
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
+    }
+
+    pub fn auto_msg_debug_plus(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        <Self as ValidIter>::BaseType: Debug,
+    {
+        let auto_msg = format!(
+            "element is out of valid bounds [{:?}, {:?}] - {}",
+            self.lower_bound, self.upper_bound, msg
+        );
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
     }
 }
 

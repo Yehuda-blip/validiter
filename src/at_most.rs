@@ -1,4 +1,4 @@
-use crate::{valid_iter::ValidIter, valid_result::ValidErr};
+use crate::{msg::MsgPusher, valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
@@ -22,6 +22,54 @@ where
             max_count,
             counter: 0,
         }
+    }
+
+    fn msg_push(
+        verr: ValidErr<<Self as ValidIter>::BaseType>,
+        msg: String,
+    ) -> ValidErr<<Self as ValidIter>::BaseType> {
+        match verr {
+            ValidErr::TooMany { element, msg: None } => ValidErr::TooMany {
+                element,
+                msg: Some(msg),
+            },
+            other => other,
+        }
+    }
+
+    pub fn msg(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        let msg = String::from(msg);
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, msg.to_owned()))
+    }
+
+    pub fn auto_msg(
+        self,
+    ) -> MsgPusher<
+        AtMost<I>,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        let auto_msg = format!("too many elements, cannot exceed {}", self.max_count);
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
+    }
+
+    pub fn auto_msg_plus(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        AtMost<I>,
+        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        let auto_msg = format!(
+            "too many elements, cannot exceed {} - {}",
+            self.max_count, msg
+        );
+        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
     }
 }
 
