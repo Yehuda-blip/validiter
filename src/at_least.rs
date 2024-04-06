@@ -39,23 +39,23 @@ where
         msg: &str,
     ) -> MsgPusher<
         AtLeast<I>,
-        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+        impl Fn(&Self, ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
     > {
         let msg = String::from(msg);
-        MsgPusher::new(self, move |verr| Self::msg_push(verr, msg.to_owned()))
+        MsgPusher::new(self, move |_, verr| Self::msg_push(verr, msg.to_owned()))
     }
 
     pub fn auto_msg(
         self,
     ) -> MsgPusher<
         AtLeast<I>,
-        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+        impl Fn(&Self, ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
     > {
         let auto_msg = format!(
             "not enough elements, should have at least {}",
             self.min_count
         );
-        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
+        MsgPusher::new(self, move |_, verr| Self::msg_push(verr, auto_msg.to_owned()))
     }
 
     pub fn auto_msg_plus(
@@ -63,13 +63,13 @@ where
         msg: &str,
     ) -> MsgPusher<
         AtLeast<I>,
-        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+        impl Fn(&Self, ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
     > {
         let auto_msg = format!(
             "not enough elements, should have at least {} - {}",
             self.min_count, msg
         );
-        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
+        MsgPusher::new(self, move |_, verr| Self::msg_push(verr, auto_msg.to_owned()))
     }
 }
 

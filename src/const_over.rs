@@ -1,4 +1,7 @@
+use std::fmt::{Debug, Display};
+
 use crate::{
+    msg::MsgPusher,
     valid_iter::ValidIter,
     valid_result::{VResult, ValidErr},
 };
@@ -8,7 +11,7 @@ pub struct ConstOver<I, A, M>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: PartialEq,
-    M: FnMut(&I::BaseType) -> A,
+    M: Fn(&I::BaseType) -> A,
 {
     iter: I,
     stored_value: Option<A>,
@@ -19,7 +22,7 @@ impl<I, A, M> ConstOver<I, A, M>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: PartialEq,
-    M: FnMut(&I::BaseType) -> A,
+    M: Fn(&I::BaseType) -> A,
 {
     pub(crate) fn new(iter: I, extractor: M) -> ConstOver<I, A, M> {
         Self {
@@ -28,13 +31,163 @@ where
             extractor,
         }
     }
+
+    pub fn msg(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        let msg = String::from(msg);
+        return MsgPusher::new(self, move |_, verr| match verr {
+            ValidErr::BrokenConstant { element, msg: None } => ValidErr::BrokenConstant {
+                element,
+                msg: Some(msg.to_owned()),
+            },
+            other => other,
+        });
+    }
+
+    pub fn auto_msg(
+        self,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        A: Display,
+    {
+        let stored_val_string = match &self.stored_value {
+            Some(val) => format!("{}", val),
+            None => "(no stored value)".to_string(),
+        };
+        MsgPusher::new(self, move |self_ref, verr| match verr {
+            ValidErr::BrokenConstant { element, msg: None } => {
+                let element_eval = (self_ref.extractor)(&element);
+                ValidErr::BrokenConstant {
+                    element,
+                    msg: Some(format!(
+                        "element evaluates to {}, should be {}",
+                        element_eval, stored_val_string
+                    )),
+                }
+            }
+            other => other,
+        })
+    }
+
+    pub fn auto_msg_plus(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        A: Display,
+    {
+        let stored_val_string = match &self.stored_value {
+            Some(val) => format!("{}", val),
+            None => "(no stored value)".to_string(),
+        };
+        let msg = String::from(msg);
+        MsgPusher::new(self, move |self_ref, verr| match verr {
+            ValidErr::BrokenConstant { element, msg: None } => {
+                let element_eval = (self_ref.extractor)(&element);
+                ValidErr::BrokenConstant {
+                    element,
+                    msg: Some(format!(
+                        "element evaluates to {}, should be {} - {}",
+                        element_eval,
+                        stored_val_string,
+                        msg.to_string()
+                    )),
+                }
+            }
+            other => other,
+        })
+    }
+
+    pub fn auto_msg_debug(
+        self,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        A: Debug,
+    {
+        let stored_val_string = match &self.stored_value {
+            Some(val) => format!("{:?}", val),
+            None => "(no stored value)".to_string(),
+        };
+        MsgPusher::new(self, move |self_ref, verr| match verr {
+            ValidErr::BrokenConstant { element, msg: None } => {
+                let element_eval = (self_ref.extractor)(&element);
+                ValidErr::BrokenConstant {
+                    element,
+                    msg: Some(format!(
+                        "element evaluates to {:?}, should be {}",
+                        element_eval, stored_val_string
+                    )),
+                }
+            }
+            other => other,
+        })
+    }
+
+    pub fn auto_msg_debug_plus(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        A: Debug,
+    {
+        let stored_val_string = match &self.stored_value {
+            Some(val) => format!("{:?}", val),
+            None => "(no stored value)".to_string(),
+        };
+        let msg = String::from(msg);
+        MsgPusher::new(self, move |self_ref, verr| match verr {
+            ValidErr::BrokenConstant { element, msg: None } => {
+                let element_eval = (self_ref.extractor)(&element);
+                ValidErr::BrokenConstant {
+                    element,
+                    msg: Some(format!(
+                        "element evaluates to {:?}, should be {} - {}",
+                        element_eval, stored_val_string, msg
+                    )),
+                }
+            }
+            other => other,
+        })
+    }
 }
 
 impl<I, A, M> Iterator for ConstOver<I, A, M>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: PartialEq,
-    M: FnMut(&I::BaseType) -> A,
+    M: Fn(&I::BaseType) -> A,
 {
     type Item = VResult<I::BaseType>;
 
@@ -62,7 +215,7 @@ impl<I, A, M> ValidIter for ConstOver<I, A, M>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: PartialEq,
-    M: FnMut(&I::BaseType) -> A,
+    M: Fn(&I::BaseType) -> A,
 {
     type BaseType = I::BaseType;
 }

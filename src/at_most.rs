@@ -42,20 +42,20 @@ where
         msg: &str,
     ) -> MsgPusher<
         Self,
-        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+        impl Fn(&Self, ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
     > {
         let msg = String::from(msg);
-        MsgPusher::new(self, move |verr| Self::msg_push(verr, msg.to_owned()))
+        MsgPusher::new(self, move |_, verr| Self::msg_push(verr, msg.to_owned()))
     }
 
     pub fn auto_msg(
         self,
     ) -> MsgPusher<
         AtMost<I>,
-        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+        impl Fn(&Self, ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
     > {
         let auto_msg = format!("too many elements, cannot exceed {}", self.max_count);
-        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
+        MsgPusher::new(self, move |_, verr| Self::msg_push(verr, auto_msg.to_owned()))
     }
 
     pub fn auto_msg_plus(
@@ -63,13 +63,13 @@ where
         msg: &str,
     ) -> MsgPusher<
         AtMost<I>,
-        impl FnMut(ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
+        impl Fn(&Self, ValidErr<<Self as ValidIter>::BaseType>) -> ValidErr<<Self as ValidIter>::BaseType>,
     > {
         let auto_msg = format!(
             "too many elements, cannot exceed {} - {}",
             self.max_count, msg
         );
-        MsgPusher::new(self, move |verr| Self::msg_push(verr, auto_msg.to_owned()))
+        MsgPusher::new(self, move |_, verr| Self::msg_push(verr, auto_msg.to_owned()))
     }
 }
 

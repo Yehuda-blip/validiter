@@ -7,8 +7,8 @@ pub struct LookBack<I, A, M, F, const N: usize>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: Default,
-    M: FnMut(&I::BaseType) -> A,
-    F: FnMut(&A, &I::BaseType) -> bool,
+    M: Fn(&I::BaseType) -> A,
+    F: Fn(&A, &I::BaseType) -> bool,
 {
     iter: I,
     pos: usize,
@@ -21,8 +21,8 @@ impl<I, A, M, F, const N: usize> LookBack<I, A, M, F, N>
 where
     I: Sized + ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: Default,
-    M: FnMut(&I::BaseType) -> A,
-    F: FnMut(&A, &I::BaseType) -> bool,
+    M: Fn(&I::BaseType) -> A,
+    F: Fn(&A, &I::BaseType) -> bool,
 {
     pub fn new(iter: I, extractor: M, validation: F) -> LookBack<I, A, M, F, N> {
         Self {
@@ -40,8 +40,8 @@ impl<I, A, M, F, const N: usize> Iterator for LookBack<I, A, M, F, N>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: Default,
-    M: FnMut(&I::BaseType) -> A,
-    F: FnMut(&A, &I::BaseType) -> bool,
+    M: Fn(&I::BaseType) -> A,
+    F: Fn(&A, &I::BaseType) -> bool,
 {
     type Item = VResult<I::BaseType>;
 
@@ -89,8 +89,8 @@ impl<I, A, M, F, const N: usize> ValidIter for LookBack<I, A, M, F, N>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: Default,
-    M: FnMut(&I::BaseType) -> A,
-    F: FnMut(&A, &I::BaseType) -> bool,
+    M: Fn(&I::BaseType) -> A,
+    F: Fn(&A, &I::BaseType) -> bool,
 {
     type BaseType = I::BaseType;
 }
