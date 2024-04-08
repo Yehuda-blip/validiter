@@ -25,7 +25,14 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(Err(_err_type)) => Some(Err(ValidErr::Lifted { msg: None })),
+            Some(Err(ValidErr::TooMany { msg, .. })) => Some(Err(ValidErr::Lifted { msg })),
+            Some(Err(ValidErr::TooFew { msg })) => Some(Err(ValidErr::Lifted { msg })),
+            Some(Err(ValidErr::OutOfBounds { msg, .. })) => Some(Err(ValidErr::Lifted  { msg })),
+            Some(Err(ValidErr::Invalid { msg, .. })) => Some(Err(ValidErr::Lifted  { msg })),
+            Some(Err(ValidErr::BrokenConstant { msg, .. })) => Some(Err(ValidErr::Lifted  { msg })),
+            Some(Err(ValidErr::LookBackFailed { msg, .. })) => Some(Err(ValidErr::Lifted { msg })),
+            Some(Err(ValidErr::Mapped { msg })) => Some(Err(ValidErr::Mapped { msg })),
+            Some(Err(ValidErr::Lifted { msg })) => Some(Err(ValidErr::Lifted { msg })),
             Some(Ok(ok_type)) => Some(Ok(ok_type)),
             None => None,
         }

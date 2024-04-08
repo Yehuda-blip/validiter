@@ -1,4 +1,6 @@
-use crate::{valid_iter::ValidIter, valid_result::ValidErr};
+use std::fmt::{Debug, Display};
+
+use crate::{msg::MsgPusher, valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
@@ -33,6 +35,138 @@ where
             extractor,
             validation,
         }
+    }
+
+    pub fn msg(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        let msg = msg.to_owned();
+        MsgPusher::new(self, move |_, verr| match verr {
+            ValidErr::LookBackFailed { element, msg: None } => ValidErr::LookBackFailed {
+                element,
+                msg: Some(msg.to_string()),
+            },
+            other => other,
+        })
+    }
+
+    pub fn auto_msg(
+        self,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        A: Display,
+    {
+        MsgPusher::new(self, move |self_ref, verr| match verr {
+            ValidErr::LookBackFailed { element, msg: None } => {
+                let msg = format!(
+                    "element evaluates to {}, as #{} in a {} length cycle, where the previous #{} element evaluated to {}",
+                     (&self_ref.extractor)(&element), self_ref.pos + 1, N, self_ref.pos + 1, self_ref.value_store[self_ref.pos]
+                );
+                ValidErr::LookBackFailed {
+                    element,
+                    msg: Some(msg),
+                }
+            }
+            other => other,
+        })
+    }
+
+    pub fn auto_msg_plus(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        A: Display,
+    {
+        let msg = msg.to_string();
+        MsgPusher::new(self, move |self_ref, verr| match verr {
+            ValidErr::LookBackFailed { element, msg: None } => {
+                let msg = format!(
+                    "element evaluates to {}, as #{} in a {} length cycle, where the previous #{} element evaluated to {} - {}",
+                     (&self_ref.extractor)(&element), self_ref.pos + 1, N, self_ref.pos + 1, self_ref.value_store[self_ref.pos], msg
+                );
+                ValidErr::LookBackFailed {
+                    element,
+                    msg: Some(msg),
+                }
+            }
+            other => other,
+        })
+    }
+
+    pub fn auto_msg_debug(
+        self,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        A: Debug,
+    {
+        MsgPusher::new(self, move |self_ref, verr| match verr {
+            ValidErr::LookBackFailed { element, msg: None } => {
+                let msg = format!(
+                    "element evaluates to {:?}, as #{} in a {} length cycle, where the previous #{} element evaluated to {:?}",
+                     (&self_ref.extractor)(&element), self_ref.pos + 1, N, self_ref.pos + 1, self_ref.value_store[self_ref.pos]
+                );
+                ValidErr::LookBackFailed {
+                    element,
+                    msg: Some(msg),
+                }
+            }
+            other => other,
+        })
+    }
+
+    pub fn auto_msg_debug_plus(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    >
+    where
+        A: Debug,
+    {
+        let msg = msg.to_string();
+        MsgPusher::new(self, move |self_ref, verr| match verr {
+            ValidErr::LookBackFailed { element, msg: None } => {
+                let msg = format!(
+                    "element evaluates to {:?}, as #{} in a {} length cycle, where the previous #{} element evaluated to {:?} - {}",
+                     (&self_ref.extractor)(&element), self_ref.pos + 1, N, self_ref.pos + 1, self_ref.value_store[self_ref.pos], msg
+                );
+                ValidErr::LookBackFailed {
+                    element,
+                    msg: Some(msg),
+                }
+            }
+            other => other,
+        })
     }
 }
 

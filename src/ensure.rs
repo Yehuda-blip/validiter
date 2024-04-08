@@ -1,4 +1,4 @@
-use crate::{valid_iter::ValidIter, valid_result::ValidErr};
+use crate::{msg::MsgPusher, valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
@@ -19,6 +19,25 @@ where
 {
     pub(crate) fn new(iter: I, validation: F) -> Ensure<I, F> {
         Ensure { iter, validation }
+    }
+    
+    pub fn msg(
+        self,
+        msg: &str,
+    ) -> MsgPusher<
+        Self,
+        impl Fn(
+            &Self,
+            ValidErr<<Self as ValidIter>::BaseType>,
+        ) -> ValidErr<<Self as ValidIter>::BaseType>,
+    > {
+        let msg = msg.to_string();
+        MsgPusher::new(self, move |_, verr| {
+            match verr {
+                ValidErr::Invalid { element, msg: None } => ValidErr::Invalid { element, msg: Some(msg.to_owned()) },
+                other => other
+            }
+        })
     }
 }
 
