@@ -64,18 +64,19 @@ where
     where
         A: Display,
     {
-        let stored_val_string = match &self.stored_value {
-            Some(val) => format!("{}", val),
-            None => "(no stored value)".to_string(),
-        };
         MsgPusher::new(self, move |self_ref, verr| match verr {
             ValidErr::BrokenConstant { element, msg: None } => {
-                let element_eval = (self_ref.extractor)(&element);
+                let element_eval = (&self_ref.extractor)(&element);
+                // string cache in MsgPusher?
+                let stored_value_str = match &self_ref.stored_value {
+                    Some(sv) => sv.to_string(),
+                    None => "(no stored value)".to_owned()
+                };
                 ValidErr::BrokenConstant {
                     element,
                     msg: Some(format!(
                         "element evaluates to {}, should be {}",
-                        element_eval, stored_val_string
+                        element_eval, stored_value_str
                     )),
                 }
             }
