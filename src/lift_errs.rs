@@ -83,17 +83,18 @@ pub trait ErrLiftable<OkType, ErrType>:
     ///             .map( |line| {
     ///                 line.split(",")
     ///                 .map(|s| s.trim())
-    ///                 .map(|s| s.parse::<f64>().map_err(|_| ValidErr::<f64>::Mapped))
+    ///                 .map(|s| s.parse::<f64>().map_err(|e| ValidErr::<f64>::Mapped { msg: e.to_string() }))
     ///                 // the iterator is over VResult<f64>, but map is not a ValidIter!
     ///                 .lift_errs()
     ///                 .ensure(|f| *f >= 0.0)
+    ///                 .msg("found negative value")
     ///                 .collect::<Result<Vec<f64>, ValidErr<f64>>>()
     ///             })
     ///             // OkType is a vector, but ErrType is f64!
     ///             .lift_errs()
     ///             .collect::<Result<Vec<_>, _>>(); // now ErrType is also a Vec<f64>
     ///
-    /// assert_eq!(mat, Err(ValidErr::Lifted)); // the element at pos [1][1] would have been negative, failing the ensure validation
+    /// assert_eq!(mat, Err(ValidErr::Lifted { msg: Some("found negative value".into()) })); // the element at pos [1][1] would have been negative, failing the ensure validation
     ///
     /// ```
     ///

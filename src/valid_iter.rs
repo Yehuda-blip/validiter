@@ -58,7 +58,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// `at_most(n)` yeilds `Ok(element)` values until `n` elements are yielded,
     /// or the end of the iterator is reached. If values are still in the iteration,
-    /// they will be wrapped in `Err(ValidErr::TooMany(element))`.
+    /// they will be wrapped in `Err(ValidErr::TooMany { element, msg: None }`.
     ///
     /// Elements already wrapped in `Err(ValidErr::<some valid err variant>)` will not be
     /// counted towards reaching the `n` elements upper bound.
@@ -74,7 +74,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// assert_eq!(iter.next(), Some(Ok(&1)));
     /// assert_eq!(iter.next(), Some(Ok(&2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooMany(&3))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooMany { element: &3, msg: None } )));
     /// ```
     ///
     /// Generally, `at_most` could be thought of as a not-quite-as-useful
@@ -86,7 +86,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// #
     /// let mut collection_result: Result<Vec<_>, _> = (0..).take(1_000_000_000).validate().at_most(10).collect::<Result<_, _>>();
     ///
-    /// assert_eq!(collection_result, Err(ValidErr::TooMany(10)));
+    /// assert_eq!(collection_result, Err(ValidErr::TooMany { element: 10, msg: None } ));
     /// ```
     ///
     /// `at_most` will not account for validation errors already in the iteration:
@@ -95,7 +95,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// #
     /// let mut iter = (-1..=3).validate().between(0, 10).at_most(4);
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(-1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds { element: -1, msg: None } )));
     /// assert_eq!(iter.next(), Some(Ok(0)));
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2)));
@@ -112,7 +112,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// `at_least(n)` yields `Ok(element)` values until the iteration ends. If the
     /// number of values in the iteration is less than `n`, a new element would be
-    /// added to the end of the iteration with the value `Err(ValidErr::TooFew)`.
+    /// added to the end of the iteration with the value `Err(ValidErr::TooFew { msg: None } )`.
     ///
     /// The `at_least` adapter cannot handle short-circuiting of iterators, so
     /// iterations such as `(0..10).validate().at_least(100).take(5)` will not
@@ -133,7 +133,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Ok(&1)));
     /// assert_eq!(iter.next(), Some(Ok(&2)));
     /// assert_eq!(iter.next(), Some(Ok(&3)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooFew)));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooFew { msg: None } )));
     /// assert_eq!(iter.next(), None);
     /// ```
     ///
@@ -157,10 +157,10 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// #
     /// let mut iter = (0..=2).validate().between(1, 10).at_least(3);
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(0))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds { element: 0, msg: None } )));
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooFew))); // err element added, because the first element does not count.
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooFew { msg: None } ))); // err element added, because the first element does not count.
     /// ```
     ///
     /// [`Err(ValidErr::TooFew)`](crate::valid_result::ValidErr)
@@ -172,7 +172,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// is out of the argument bounds.
     ///
     /// `between(lowest, highest)` wraps any value `val` which violates the constraint
-    /// `lowest <= val && val <= highest` in a `Err(ValidErr::OutOfBounds(val))`.
+    /// `lowest <= val && val <= highest` in a `Err(ValidErr::OutOfBounds { element: val, msg: None }))`.
     /// Otherwise, `Ok(val)` is yielded.
     ///
     /// Elements already wrapped in type `Err(ValidErr::<some valid err variant>)` are ignored.
@@ -186,10 +186,10 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// let a = [1, 2, 3, 4];
     /// let mut iter = a.iter().validate().between(&2, &3);
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(&1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds { element: &1, msg: None } )));
     /// assert_eq!(iter.next(), Some(Ok(&2)));
     /// assert_eq!(iter.next(), Some(Ok(&3)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(&4))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds { element: &4, msg: None } )));
     /// ```
     ///
     /// Partial-Equality is also supported:
@@ -202,7 +202,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// // we can't compare a NaN, so we'll pattern-match:
     /// match iter.next() {
     ///     // this is the value we get
-    ///     Some(Err(ValidErr::OutOfBounds(val))) => {assert!(val.is_nan());}
+    ///     Some(Err(ValidErr::OutOfBounds { element: val, msg: None } )) => {assert!(val.is_nan());}
     ///
     ///    // won't happen, '&f64::NAN' violates '&2.0 <= val && val <= &3.0'
     ///     Some(Ok(_)) => {panic!()}
@@ -227,7 +227,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// a boolean test as an argument and applies it to each of the
     /// elements in the iteration. If the test returns `true`, the element
     /// is wrapped in `Ok(element)`. Otherwise, it is wrapped in
-    /// `Err(ValidErr::Invalid(element))`.
+    /// `Err(ValidErr::Invalid { element, msg: None } )`.
     ///
     /// Values of type `Err(ValidErr::<some valid err variant>)` are ignored.
     ///
@@ -240,9 +240,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// let mut iter = (0..=3).validate().ensure(|i| i % 2 == 0);
     ///
     /// assert_eq!(iter.next(), Some(Ok(0)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid { element: 1, msg: None } )));
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(3))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid { element: 3, msg: None } )));
     /// ```
     ///
     /// You might want to chain `ensure` validations to create
@@ -253,12 +253,14 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// let mut iter = (0..=3)
     ///             .validate()
     ///             .ensure(|i| i % 2 == 0)
-    ///             .ensure(|i| *i > 0);
+    ///             .msg("not even")
+    ///             .ensure(|i| *i > 0)
+    ///             .msg("not positive");
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(0))));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid { element: 0, msg: Some("not positive".into()) } )));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid { element: 1, msg: Some("not even".into()) } )));
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(3))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid { element: 3, msg: Some("not even".into()) } )));
     /// ```
     ///
     /// `ensure` ignores error elements:
@@ -267,10 +269,10 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// #
     /// let mut iter = (0..=3).validate().between(2, 3).ensure(|i| i % 2 == 0);
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(0))));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(1)))); // invalid, but not tested
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds { element: 0, msg: None } )));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds { element: 1, msg: None } ))); // invalid, but not tested
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(3))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid { element: 3, msg: None } )));
     /// ```
     ///
     /// [`Err(ValidErr::Invalid(element))`](crate::valid_result::ValidErr)
@@ -293,7 +295,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// this value.
     ///
     /// Elements which fail the `validation` test will be wrapped in
-    /// `Err(ValidErr::LookBackFailed(element))`.
+    /// `Err(ValidErr::LookBackFailed { element, msg: None } )`.
     ///
     /// Elements already wrapped in a `Err(ValidErr::<some valid err variant>)`
     /// are ignored by both the `extractor` and the `validation` closures.
@@ -310,7 +312,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Ok(0))); // first value is never tested
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed(1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed {element: 1, msg: None } )));
     /// ```
     ///
     /// Or maybe a slightly more exotic test:
@@ -358,9 +360,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// 1. Assuming there was a previous Nth element (we'll call it `p_nth`),
     /// the current element is tested for `validation(extractor(p_nth), element)`.
     /// 2. If the element passed the test, it is wrapped in `Ok(element)`.
-    /// otherwise it wrapped in `Err(ValidErr::LookBackFailed(element))`, and
+    /// otherwise it wrapped in `Err(ValidErr::LookBackFailed { element, msg: None } )`, and
     /// will not be used to test the next nth element (that is, the next nth
-    /// element would be compared with the previous value).
+    /// element would be compared with the value extracted from the previous element).
     ///
     /// Because of the underlying implementation, you must specify the generic
     /// constant `N` when calling the method, and so you also must allow for
@@ -392,7 +394,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Ok(0)));
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2))); // evaluated with respect to 0
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed(2)))); // evaluated with respect to 1
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed { element: 2, msg: None } ))); // evaluated with respect to 1
     /// assert_eq!(iter.next(), Some(Ok(3))); // also evaluated with respect to 1
     /// assert_eq!(iter.next(), Some(Ok(4))); // evaluted with respect to 2
     /// ```
@@ -414,8 +416,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// assert_eq!(iter.next(), Some(Ok('c')));
     /// assert_eq!(iter.next(), Some(Ok('a')));
     /// assert_eq!(iter.next(), Some(Ok('b')));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed('f'))));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed('b'))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed { element: 'f', msg: None } )));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed { element: 'b', msg: None } )));
     /// assert_eq!(iter.next(), Some(Ok('c')));
     /// ```
     ///
@@ -440,7 +442,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// some value for each element in iteration. If for some element
     /// this results in a value which is not equal to value computed
     /// from the first element, this element is wrapped in
-    /// `Err(ValidErr::BrokenConstant(element))`. Otherwise, the element
+    /// `Err(ValidErr::BrokenConstant { element, msg: None } )`. Otherwise, the element
     /// is wrapped in `Ok(element)`. The first valid element is always wrapped
     /// in `Ok`.
     ///
@@ -455,7 +457,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// assert_eq!(iter.next(), Some(Ok('A')));
     /// assert_eq!(iter.next(), Some(Ok('B')));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::BrokenConstant('c'))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::BrokenConstant { element: 'c', msg: None } )));
     /// ```
     ///
     /// `const_over` ignores validation errors:
@@ -469,11 +471,11 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///                     .ensure(|c| c.is_alphabetic())
     ///                     .const_over(|c| c.is_uppercase());
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid('1'))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid { element: '1', msg: None } )));
     /// assert_eq!(iter.next(), Some(Ok('A')));
     /// assert_eq!(iter.next(), Some(Ok('B')));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid('2'))));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::BrokenConstant('c'))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid { element: '2', msg: None } )));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::BrokenConstant { element: 'c', msg: None } )));
     /// ```
     ///
     /// [`Err(ValidErr::BrokenConstant(element))`](crate::valid_result::ValidErr)
