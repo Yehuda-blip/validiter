@@ -157,10 +157,10 @@ mod tests {
             })
     }
 
-    #[derive(Debug, PartialEq)]
-    struct Struct;
     #[test]
     fn test_at_most_messaging() {
+        #[derive(Debug, PartialEq)]
+        struct Struct;
         let mut iter = [Struct, Struct]
             .iter()
             .validate()
