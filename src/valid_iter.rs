@@ -104,8 +104,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// [`Err(ValidErr::TooMany(element))`](crate::valid_result::ValidErr)
     ///
-    fn at_most(self, n: usize) -> AtMost<Self> {
-        AtMost::<Self>::new(self, n)
+    fn at_most<Msg>(self, n: usize, too_many: Msg) -> AtMost<Self, Msg> 
+    where Msg: Fn(&Self::BaseType, &usize, &usize) -> String {
+        AtMost::<Self, Msg>::new(self, n, too_many)
     }
 
     /// Fails a validation iterator if it does not contain `n` or more elements.

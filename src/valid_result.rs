@@ -4,10 +4,10 @@ use std::{
 };
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValidErr<E> {
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`at_most`](crate::ValidIter::at_most) adapter
-    TooMany(E),
+    TooMany { element: E, msg: String },
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`at_least`](crate::ValidIter::at_least) adapter
     TooFew,
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`between`](crate::ValidIter::between) adapter
@@ -27,7 +27,7 @@ pub enum ValidErr<E> {
 impl<E> Display for ValidErr<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let err_type_str = match self {
-            ValidErr::TooMany(_) => "ValidErr::TooMany",
+            ValidErr::TooMany { msg, ..} => msg,
             ValidErr::TooFew => "ValidErr::TooFew",
             ValidErr::OutOfBounds(_) => "ValidErr::OutOfBounds",
             ValidErr::Invalid(_) => "ValidErr::Invalid",
