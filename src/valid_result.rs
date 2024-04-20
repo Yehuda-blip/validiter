@@ -9,7 +9,7 @@ pub enum ValidErr<E> {
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`at_most`](crate::ValidIter::at_most) adapter
     TooMany(E, String),
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`at_least`](crate::ValidIter::at_least) adapter
-    TooFew,
+    TooFew(String),
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`between`](crate::ValidIter::between) adapter
     OutOfBounds(E),
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`ensure`](crate::ValidIter::ensure) adapter
@@ -28,7 +28,7 @@ impl<E> Display for ValidErr<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let err_type_str = match self {
             ValidErr::TooMany(_, msg) => msg,
-            ValidErr::TooFew => "ValidErr::TooFew",
+            ValidErr::TooFew(msg) => msg,
             ValidErr::OutOfBounds(_) => "ValidErr::OutOfBounds",
             ValidErr::Invalid(_) => "ValidErr::Invalid",
             ValidErr::Lifted => "ValidErr::Lifted",

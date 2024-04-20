@@ -165,8 +165,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::TooFew)`](crate::valid_result::ValidErr)
-    fn at_least(self, n: usize) -> AtLeast<Self> {
-        AtLeast::<Self>::new(self, n)
+    fn at_least<Msg>(self, n: usize, too_few: Msg) -> AtLeast<Self, Msg> 
+    where Msg: Fn(&usize, &usize) -> String {
+        AtLeast::<Self, Msg>::new(self, n, too_few)
     }
 
     /// Fails a validation iterator on [`PartialOrd`] elements if one the elements

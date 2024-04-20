@@ -31,7 +31,7 @@ mod tests {
             .at_most(7, |_,_,_| "".to_string())
             .between(2, 8)
             .ensure(|i| i % 2 == 0)
-            .at_least(4)
+            .at_least(4, |_,_| "".to_string())
             .collect::<Vec<VResult<_>>>();
         assert_eq!(
             validation_results,
@@ -58,7 +58,7 @@ mod tests {
                 Err(ValidErr::TooMany(9, "".to_string())),
                 Err(ValidErr::BrokenConstant(-1)),
                 Err(ValidErr::LookBackFailed(1)),
-                Err(ValidErr::TooFew),
+                Err(ValidErr::TooFew("".to_string())),
             ]
         )
     }
