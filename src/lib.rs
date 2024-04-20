@@ -16,8 +16,7 @@ pub use valid_result::{VResult, ValidErr};
 #[cfg(test)]
 mod tests {
     use crate::{
-        valid_iter::{Unvalidatable, ValidIter},
-        valid_result::{VResult, ValidErr},
+        too_many, valid_iter::{Unvalidatable, ValidIter}, valid_result::{VResult, ValidErr}
     };
 
     #[test]
@@ -29,7 +28,7 @@ mod tests {
             .validate()
             .const_over(|i| *i >= 0)
             .look_back_n::<10, _, _, _>(|i| *i, |prev, curr| prev == curr)
-            .at_most(7)
+            .at_most(7, |_,_,_| "".to_string())
             .between(2, 8)
             .ensure(|i| i % 2 == 0)
             .at_least(4)
@@ -44,19 +43,19 @@ mod tests {
                 Ok(4),
                 Err(ValidErr::Invalid(5)),
                 Ok(6),
-                Err(ValidErr::TooMany(7)),
-                Err(ValidErr::TooMany(8)),
-                Err(ValidErr::TooMany(9)),
-                Err(ValidErr::TooMany(0)),
-                Err(ValidErr::TooMany(1)),
-                Err(ValidErr::TooMany(2)),
-                Err(ValidErr::TooMany(3)),
-                Err(ValidErr::TooMany(4)),
-                Err(ValidErr::TooMany(5)),
-                Err(ValidErr::TooMany(6)),
-                Err(ValidErr::TooMany(7)),
-                Err(ValidErr::TooMany(8)),
-                Err(ValidErr::TooMany(9)),
+                Err(ValidErr::TooMany(7, "".to_string())),
+                Err(ValidErr::TooMany(8, "".to_string())),
+                Err(ValidErr::TooMany(9, "".to_string())),
+                Err(ValidErr::TooMany(0, "".to_string())),
+                Err(ValidErr::TooMany(1, "".to_string())),
+                Err(ValidErr::TooMany(2, "".to_string())),
+                Err(ValidErr::TooMany(3, "".to_string())),
+                Err(ValidErr::TooMany(4, "".to_string())),
+                Err(ValidErr::TooMany(5, "".to_string())),
+                Err(ValidErr::TooMany(6, "".to_string())),
+                Err(ValidErr::TooMany(7, "".to_string())),
+                Err(ValidErr::TooMany(8, "".to_string())),
+                Err(ValidErr::TooMany(9, "".to_string())),
                 Err(ValidErr::BrokenConstant(-1)),
                 Err(ValidErr::LookBackFailed(1)),
                 Err(ValidErr::TooFew),

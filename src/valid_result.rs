@@ -7,7 +7,7 @@ use std::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValidErr<E> {
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`at_most`](crate::ValidIter::at_most) adapter
-    TooMany { element: E, msg: String },
+    TooMany(E, String),
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`at_least`](crate::ValidIter::at_least) adapter
     TooFew,
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`between`](crate::ValidIter::between) adapter
@@ -27,7 +27,7 @@ pub enum ValidErr<E> {
 impl<E> Display for ValidErr<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let err_type_str = match self {
-            ValidErr::TooMany { msg, ..} => msg,
+            ValidErr::TooMany(_, msg) => msg,
             ValidErr::TooFew => "ValidErr::TooFew",
             ValidErr::OutOfBounds(_) => "ValidErr::OutOfBounds",
             ValidErr::Invalid(_) => "ValidErr::Invalid",
