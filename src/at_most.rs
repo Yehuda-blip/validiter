@@ -6,11 +6,14 @@ use super::valid_result::VResult;
 
 #[macro_export]
 macro_rules! too_many {
-    () => {
-        |elmt, i, max_count| format!("Too Many error: got '{elmt}' as element at index {i} (0-based) of an iteration capped at {max_count} elements")
+    ($description:literal plus_auto) => {
+        |elmt, i, max_count| $description.to_string() + &format!("got '{elmt}' as the element at index {i} (0-based) of an iteration capped at {max_count} elements")
     };
-    (debug) => {
-        |elmt, i, max_count| format!("Too Many error: got '{elmt:?}' as element at index {i} (0-based) of an iteration capped at {max_count} elements")
+    ($description:literal plus_auto_debug) => {
+        |elmt, i, max_count| $description.to_string() + &format!("got '{elmt:?}' as the element at index {i} (0-based) of an iteration capped at {max_count} elements")
+    };
+    ($description:literal) => {
+        |_, _, _| $description.to_string()
     };
 }
 
@@ -133,9 +136,7 @@ mod tests {
                     _ => panic!("bad match for item {}: {:?}", i, res_i),
                 },
                 false => match res_i {
-                    Err(ValidErr::TooMany(element, msg))
-                        if element == (i as i32 - 10) as i32 =>
-                    {
+                    Err(ValidErr::TooMany(element, msg)) if element == (i as i32 - 10) as i32 => {
                         print!("{}", msg);
                         assert_eq!(msg, format!("err: elmt {}, i {}, max 5", element, i))
                     }
@@ -190,42 +191,53 @@ mod tests {
         );
         assert_eq!(
             iter.next(),
-            Some(Err(ValidErr::TooMany(&Struct,"Struct-1-0".to_string())))
+            Some(Err(ValidErr::TooMany(&Struct, "Struct-1-0".to_string())))
         );
         assert_eq!(iter.next(), None)
     }
 
     #[test]
-    fn test_too_many_macro_no_params() {
-        let mut iter = [Struct].iter().validate().at_most(0, too_many!());
+    fn test_too_many_macro_just_user_input() {
+        let mut iter = [Struct].iter().validate().at_most(0, too_many!("test"));
         match iter.next() {
             Some(Err(ValidErr::TooMany(_, msg))) => {
-                assert_eq!(msg, "Too Many error: got 'Struct-display' as element at index 0 (0-based) of an iteration capped at 0 elements")
+                assert_eq!(msg, "test")
             }
-            _ => panic!("too many error not detected")
+            _ => panic!("too many error not detected"),
         }
     }
 
     #[test]
-    fn test_too_many_macro_debug() {
-        let mut iter = [Struct].iter().validate().at_most(0, too_many!(debug));
+    fn test_too_many_macro_auto() {
+        let mut iter = [Struct].iter().validate().at_most(0, too_many!("test" plus_auto));
         match iter.next() {
             Some(Err(ValidErr::TooMany(_, msg))) => {
-                assert_eq!(msg, "Too Many error: got 'Struct' as element at index 0 (0-based) of an iteration capped at 0 elements")
+                assert_eq!(msg, "testgot 'Struct-display' as the element at index 0 (0-based) of an iteration capped at 0 elements")
             }
-            _ => panic!("too many error not detected")
+            _ => panic!("too many error not detected"),
+        }
+    }
+
+    #[test]
+    fn test_too_many_macro_auto_debug() {
+        let mut iter = [Struct].iter().validate().at_most(0, too_many!("test" plus_auto_debug));
+        match iter.next() {
+            Some(Err(ValidErr::TooMany(_, msg))) => {
+                assert_eq!(msg, "testgot 'Struct' as the element at index 0 (0-based) of an iteration capped at 0 elements")
+            }
+            _ => panic!("too many error not detected"),
         }
     }
 
     #[test]
     fn test_too_many_macro_debug_display_equivalent() {
-        let disp_iter = [Struct].iter().validate().at_most(0, too_many!());
-        let debug_iter = [Struct].iter().validate().at_most(0, too_many!(debug));
+        let disp_iter = [Struct].iter().validate().at_most(0, too_many!("" plus_auto));
+        let debug_iter = [Struct].iter().validate().at_most(0, too_many!("" plus_auto_debug));
         match disp_iter.zip(debug_iter).next() {
             Some((Err(ValidErr::TooMany(_, disp_msg)), Err(ValidErr::TooMany(_, debug_msg)))) => {
                 assert_eq!(disp_msg.replace("-display", ""), debug_msg)
             }
-            _ => panic!("too many error not detected")
+            _ => panic!("too many error not detected"),
         }
     }
 }

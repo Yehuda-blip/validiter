@@ -4,8 +4,11 @@ use super::valid_result::VResult;
 
 #[macro_export]
 macro_rules! too_few {
-    () => {
-        |count, min_count| format!("Too Few error: {count} elements were found in an iteration with a minimum count of {min_count}")
+    ($description:literal) => {
+        |_, _| $description.to_string()
+    };
+    ($description:literal plus_auto) => {
+        |count, min_count| $description.to_string() + &format!("{count} elements were found in an iteration with a minimum count of {min_count}")
     };
 }
 
@@ -190,11 +193,23 @@ mod tests {
             })
     }
 
-    fn test_at_least_macro() {
-        let result = (0..0).validate().at_least(1, too_few!()).next();
+    #[test]
+    fn test_at_least_macro_user_input_only() {
+        let result = (0..0).validate().at_least(1, too_few!("test")).next();
         match result {
             Some(Err(ValidErr::TooFew(msg))) => {
-                assert_eq!(msg, "Too Few error: 0 elements were found in an iteration with a minimum count of 1")
+                assert_eq!(msg, "test")
+            },
+            _ => {panic!("bad value out of at_least adapter")}
+        }
+    }
+
+    #[test]
+    fn test_at_least_macro_auto() {
+        let result = (0..0).validate().at_least(1, too_few!("test" plus_auto)).next();
+        match result {
+            Some(Err(ValidErr::TooFew(msg))) => {
+                assert_eq!(msg, "test0 elements were found in an iteration with a minimum count of 1")
             },
             _ => {panic!("bad value out of at_least adapter")}
         }
