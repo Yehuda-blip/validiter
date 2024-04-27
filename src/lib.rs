@@ -26,7 +26,7 @@ mod tests {
             .chain(-1..=-1)
             .chain(1..=1)
             .validate()
-            .const_over(|i| *i >= 0)
+            .const_over(|i| *i >= 0, |_,_,_| "".to_string())
             .look_back_n::<10, _, _, _>(|i| *i, |prev, curr| prev == curr)
             .at_most(7, |_,_,_| "".to_string())
             .between(2, 8, |_,_,_| "".to_string())
@@ -56,7 +56,7 @@ mod tests {
                 Err(ValidErr::TooMany(7, "".to_string())),
                 Err(ValidErr::TooMany(8, "".to_string())),
                 Err(ValidErr::TooMany(9, "".to_string())),
-                Err(ValidErr::BrokenConstant(-1)),
+                Err(ValidErr::BrokenConstant(-1, "".to_string())),
                 Err(ValidErr::LookBackFailed(1)),
                 Err(ValidErr::TooFew("".to_string())),
             ]

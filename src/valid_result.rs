@@ -19,7 +19,7 @@ pub enum ValidErr<T> {
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`look_back`](crate::ValidIter::look_back) and [`look_back_n`](crate::ValidIter::look_back_n) adapters
     LookBackFailed(T),
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`const_over`](crate::ValidIter::const_over) adapter
-    BrokenConstant(T),
+    BrokenConstant(T, String),
     /// A general error, that can be used to translate non `ValidErr` error types to `ValidErr::Mapped`
     Mapped,
 }
@@ -33,7 +33,7 @@ impl<T> Display for ValidErr<T> {
             ValidErr::Invalid(_) => "ValidErr::Invalid",
             ValidErr::Lifted => "ValidErr::Lifted",
             ValidErr::LookBackFailed(_) => "ValidErr::LookBackFailed",
-            ValidErr::BrokenConstant(_) => "ValidErr::BrokenConstant",
+            ValidErr::BrokenConstant(_, msg) => msg,
             ValidErr::Mapped => "ValidErr::Mapped",
         };
         write!(f, "{}", err_type_str)

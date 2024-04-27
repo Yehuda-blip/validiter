@@ -489,11 +489,12 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::BrokenConstant(element))`](crate::valid_result::ValidErr)
-    fn const_over<A, M>(self, extractor: M) -> ConstOver<Self, A, M>
+    fn const_over<A, M, Msg>(self, extractor: M, broken_const: Msg) -> ConstOver<Self, A, M, Msg>
     where
         A: PartialEq,
         M: FnMut(&Self::BaseType) -> A,
+        Msg: Fn(&Self::BaseType, &A, &A) -> String
     {
-        ConstOver::new(self, extractor)
+        ConstOver::new(self, extractor, broken_const)
     }
 }
