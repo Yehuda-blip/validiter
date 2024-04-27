@@ -209,7 +209,10 @@ mod tests {
 
     #[test]
     fn test_too_many_macro_auto() {
-        let mut iter = [Struct].iter().validate().at_most(0, too_many!("test" plus_auto));
+        let mut iter = [Struct]
+            .iter()
+            .validate()
+            .at_most(0, too_many!("test" plus_auto));
         match iter.next() {
             Some(Err(ValidErr::TooMany(_, msg))) => {
                 assert_eq!(msg, "testgot 'Struct-display' as the element at index 0 (0-based) of an iteration capped at 0 elements")
@@ -220,7 +223,10 @@ mod tests {
 
     #[test]
     fn test_too_many_macro_auto_debug() {
-        let mut iter = [Struct].iter().validate().at_most(0, too_many!("test" plus_auto_debug));
+        let mut iter = [Struct]
+            .iter()
+            .validate()
+            .at_most(0, too_many!("test" plus_auto_debug));
         match iter.next() {
             Some(Err(ValidErr::TooMany(_, msg))) => {
                 assert_eq!(msg, "testgot 'Struct' as the element at index 0 (0-based) of an iteration capped at 0 elements")
@@ -231,8 +237,14 @@ mod tests {
 
     #[test]
     fn test_too_many_macro_debug_display_equivalent() {
-        let disp_iter = [Struct].iter().validate().at_most(0, too_many!("" plus_auto));
-        let debug_iter = [Struct].iter().validate().at_most(0, too_many!("" plus_auto_debug));
+        let disp_iter = [Struct]
+            .iter()
+            .validate()
+            .at_most(0, too_many!("" plus_auto));
+        let debug_iter = [Struct]
+            .iter()
+            .validate()
+            .at_most(0, too_many!("" plus_auto_debug));
         match disp_iter.zip(debug_iter).next() {
             Some((Err(ValidErr::TooMany(_, disp_msg)), Err(ValidErr::TooMany(_, debug_msg)))) => {
                 assert_eq!(disp_msg.replace("-display", ""), debug_msg)

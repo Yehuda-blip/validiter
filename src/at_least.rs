@@ -199,19 +199,29 @@ mod tests {
         match result {
             Some(Err(ValidErr::TooFew(msg))) => {
                 assert_eq!(msg, "test")
-            },
-            _ => {panic!("bad value out of at_least adapter")}
+            }
+            _ => {
+                panic!("bad value out of at_least adapter")
+            }
         }
     }
 
     #[test]
     fn test_at_least_macro_auto() {
-        let result = (0..0).validate().at_least(1, too_few!("test" plus_auto)).next();
+        let result = (0..0)
+            .validate()
+            .at_least(1, too_few!("test" plus_auto))
+            .next();
         match result {
             Some(Err(ValidErr::TooFew(msg))) => {
-                assert_eq!(msg, "test0 elements were found in an iteration with a minimum count of 1")
-            },
-            _ => {panic!("bad value out of at_least adapter")}
+                assert_eq!(
+                    msg,
+                    "test0 elements were found in an iteration with a minimum count of 1"
+                )
+            }
+            _ => {
+                panic!("bad value out of at_least adapter")
+            }
         }
     }
 }
