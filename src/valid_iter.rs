@@ -8,7 +8,7 @@ use super::{at_most::AtMost, validatable::Validatable};
 /// The trait that allows sending iterators to the [`ValidIter`] type.
 /// While it is not sealed, you should probably not implement it
 /// unless you're feeling experimental.
-/// 
+///
 /// When you use this trait, all iterators have the method [`validate`](Unvalidatable::validate), and
 /// can turn to [`ValidIter`] iterators.
 ///
@@ -104,8 +104,10 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// [`Err(ValidErr::TooMany(element))`](crate::valid_result::ValidErr)
     ///
-    fn at_most<Msg>(self, n: usize, too_many: Msg) -> AtMost<Self, Msg> 
-    where Msg: Fn(&Self::BaseType, &usize, &usize) -> String {
+    fn at_most<Msg>(self, n: usize, too_many: Msg) -> AtMost<Self, Msg>
+    where
+        Msg: Fn(&Self::BaseType, &usize, &usize) -> String,
+    {
         AtMost::<Self, Msg>::new(self, n, too_many)
     }
 
@@ -165,8 +167,10 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::TooFew)`](crate::valid_result::ValidErr)
-    fn at_least<Msg>(self, n: usize, too_few: Msg) -> AtLeast<Self, Msg> 
-    where Msg: Fn(&usize, &usize) -> String {
+    fn at_least<Msg>(self, n: usize, too_few: Msg) -> AtLeast<Self, Msg>
+    where
+        Msg: Fn(&usize, &usize) -> String,
+    {
         AtLeast::<Self, Msg>::new(self, n, too_few)
     }
 
@@ -215,11 +219,17 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::OutOfBounds(val))`](crate::valid_result::ValidErr)
-    fn between(self, lower_bound: Self::BaseType, upper_bound: Self::BaseType) -> Between<Self>
+    fn between<Msg>(
+        self,
+        lower_bound: Self::BaseType,
+        upper_bound: Self::BaseType,
+        out_of_bounds: Msg,
+    ) -> Between<Self, Msg>
     where
         Self::BaseType: PartialOrd,
+        Msg: Fn(&Self::BaseType, &Self::BaseType, &Self::BaseType) -> String,
     {
-        Between::<Self>::new(self, lower_bound, upper_bound)
+        Between::<Self, Msg>::new(self, lower_bound, upper_bound, out_of_bounds)
     }
 
     /// Applies a closure constraint too each element, and fails the

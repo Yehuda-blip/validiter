@@ -16,7 +16,7 @@ pub use valid_result::{VResult, ValidErr};
 #[cfg(test)]
 mod tests {
     use crate::{
-        too_many, valid_iter::{Unvalidatable, ValidIter}, valid_result::{VResult, ValidErr}
+        valid_iter::{Unvalidatable, ValidIter}, valid_result::{VResult, ValidErr}
     };
 
     #[test]
@@ -29,15 +29,15 @@ mod tests {
             .const_over(|i| *i >= 0)
             .look_back_n::<10, _, _, _>(|i| *i, |prev, curr| prev == curr)
             .at_most(7, |_,_,_| "".to_string())
-            .between(2, 8)
+            .between(2, 8, |_,_,_| "".to_string())
             .ensure(|i| i % 2 == 0)
             .at_least(4, |_,_| "".to_string())
             .collect::<Vec<VResult<_>>>();
         assert_eq!(
             validation_results,
             [
-                Err(ValidErr::OutOfBounds(0)),
-                Err(ValidErr::OutOfBounds(1)),
+                Err(ValidErr::OutOfBounds(0, "".to_string())),
+                Err(ValidErr::OutOfBounds(1, "".to_string())),
                 Ok(2),
                 Err(ValidErr::Invalid(3)),
                 Ok(4),
