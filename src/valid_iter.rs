@@ -286,11 +286,12 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::Invalid(element))`](crate::valid_result::ValidErr)
-    fn ensure<F>(self, validation: F) -> Ensure<Self, F>
+    fn ensure<F, Msg>(self, validation: F, invalid: Msg) -> Ensure<Self, F, Msg>
     where
         F: FnMut(&Self::BaseType) -> bool,
+        Msg: Fn(&Self::BaseType) -> String,
     {
-        Ensure::<Self, F>::new(self, validation)
+        Ensure::<Self, F, Msg>::new(self, validation, invalid)
     }
 
     /// Tests each element in the iteration based on the previous element.
@@ -493,7 +494,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     where
         A: PartialEq,
         M: FnMut(&Self::BaseType) -> A,
-        Msg: Fn(&Self::BaseType, &A, &A) -> String
+        Msg: Fn(&Self::BaseType, &A, &A) -> String,
     {
         ConstOver::new(self, extractor, broken_const)
     }

@@ -13,7 +13,7 @@ pub enum ValidErr<T> {
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`between`](crate::ValidIter::between) adapter
     OutOfBounds(T, String),
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`ensure`](crate::ValidIter::ensure) adapter
-    Invalid(T),
+    Invalid(T, String),
     /// A general error recieved after using the [`lift_errs`](crate::ErrLiftable::lift_errs) adapter
     Lifted,
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`look_back`](crate::ValidIter::look_back) and [`look_back_n`](crate::ValidIter::look_back_n) adapters
@@ -30,7 +30,7 @@ impl<T> Display for ValidErr<T> {
             ValidErr::TooMany(_, msg) => msg,
             ValidErr::TooFew(msg) => msg,
             ValidErr::OutOfBounds(_, msg) => msg,
-            ValidErr::Invalid(_) => "ValidErr::Invalid",
+            ValidErr::Invalid(_, msg) => msg,
             ValidErr::Lifted => "ValidErr::Lifted",
             ValidErr::LookBackFailed(_) => "ValidErr::LookBackFailed",
             ValidErr::BrokenConstant(_, msg) => msg,
