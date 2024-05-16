@@ -345,13 +345,14 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// [`look_back_n<1, _, _, _>::(extractor, validation)`](ValidIter::look_back_n)
     /// [`Err(ValidErr::LookBackFailed(element))`](crate::valid_result::ValidErr)
-    fn look_back<A, M, F>(self, extractor: M, validation: F) -> LookBack<Self, A, M, F, 1>
+    fn look_back<A, M, F, Msg>(self, extractor: M, validation: F, failed_look_back: Msg) -> LookBack<Self, A, M, F, Msg, 1>
     where
         A: Default,
         M: FnMut(&Self::BaseType) -> A,
         F: FnMut(&A, &Self::BaseType) -> bool,
+        Msg: Fn(&Self::BaseType, &A) -> String
     {
-        LookBack::new(self, extractor, validation)
+        LookBack::new(self, extractor, validation, failed_look_back)
     }
 
     /// Fails an iteration if it does not conform to some cycling
@@ -433,17 +434,19 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::LookBackFailed(element))`](crate::valid_result::ValidErr)
-    fn look_back_n<const N: usize, A, M, F>(
+    fn look_back_n<const N: usize, A, M, F, Msg>(
         self,
         extractor: M,
         validation: F,
-    ) -> LookBack<Self, A, M, F, N>
+        failed_look_back: Msg
+    ) -> LookBack<Self, A, M, F, Msg, N>
     where
         A: Default,
         M: FnMut(&Self::BaseType) -> A,
         F: FnMut(&A, &Self::BaseType) -> bool,
+        Msg: Fn(&Self::BaseType, &A) -> String
     {
-        LookBack::new(self, extractor, validation)
+        LookBack::new(self, extractor, validation, failed_look_back)
     }
 
     /// Fails an iteration if `extractor` does not give the same result

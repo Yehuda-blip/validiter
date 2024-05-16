@@ -15,28 +15,47 @@ pub enum ValidErr<T> {
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`ensure`](crate::ValidIter::ensure) adapter
     Invalid(T, String),
     /// A general error recieved after using the [`lift_errs`](crate::ErrLiftable::lift_errs) adapter
-    Lifted,
+    Lifted(String),
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`look_back`](crate::ValidIter::look_back) and [`look_back_n`](crate::ValidIter::look_back_n) adapters
-    LookBackFailed(T),
+    LookBackFailed(T, String),
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`const_over`](crate::ValidIter::const_over) adapter
     BrokenConstant(T, String),
     /// A general error, that can be used to translate non `ValidErr` error types to `ValidErr::Mapped`
-    Mapped,
+    Mapped(String),
 }
 
-impl<T> Display for ValidErr<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let err_type_str = match self {
+impl<T> ValidErr<T> {
+    pub fn into_msg(self) -> String {
+        match self {
             ValidErr::TooMany(_, msg) => msg,
             ValidErr::TooFew(msg) => msg,
             ValidErr::OutOfBounds(_, msg) => msg,
             ValidErr::Invalid(_, msg) => msg,
-            ValidErr::Lifted => "ValidErr::Lifted",
-            ValidErr::LookBackFailed(_) => "ValidErr::LookBackFailed",
+            ValidErr::Lifted(msg) => msg,
+            ValidErr::LookBackFailed(_, msg) => msg,
             ValidErr::BrokenConstant(_, msg) => msg,
-            ValidErr::Mapped => "ValidErr::Mapped",
-        };
-        write!(f, "{}", err_type_str)
+            ValidErr::Mapped(msg) => msg,
+        }
+    }
+
+    pub fn as_msg(&self) -> &str {
+        match self {
+            ValidErr::TooMany(_, msg) => &msg,
+            ValidErr::TooFew(msg) => &msg,
+            ValidErr::OutOfBounds(_, msg) => &msg,
+            ValidErr::Invalid(_, msg) => &msg,
+            ValidErr::Lifted(msg) => &msg,
+            ValidErr::LookBackFailed(_, msg) => &msg,
+            ValidErr::BrokenConstant(_, msg) => &msg,
+            ValidErr::Mapped(msg) => &msg,
+        }
+    }
+}
+
+
+impl<T> Display for ValidErr<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_msg())
     }
 }
 
