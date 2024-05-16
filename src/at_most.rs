@@ -1,5 +1,3 @@
-use std::{iter::Enumerate, usize};
-
 use crate::{valid_iter::ValidIter, ValidErr};
 
 use super::valid_result::VResult;
@@ -7,13 +5,13 @@ use super::valid_result::VResult;
 #[macro_export]
 macro_rules! too_many {
     ($description:literal plus_auto) => {
-        |elmt, i, max_count| $description.to_string() + &format!("got '{elmt}' as the element at index {i} (0-based) of an iteration capped at {max_count} elements")
+        |elmt, max_count| $description.to_string() + &format!("iteration got '{elmt}' after exceeding the {max_count} elements cap")
     };
     ($description:literal plus_auto_debug) => {
-        |elmt, i, max_count| $description.to_string() + &format!("got '{elmt:?}' as the element at index {i} (0-based) of an iteration capped at {max_count} elements")
+        |elmt, max_count| $description.to_string() + &format!("iteration got '{elmt:?}' after exceeding the {max_count:?} elements cap")
     };
     ($description:literal) => {
-        |_, _, _| $description.to_string()
+        |_, _| $description.to_string()
     };
 }
 
@@ -21,9 +19,10 @@ macro_rules! too_many {
 pub struct AtMost<I, Msg>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    Msg: Fn(&I::BaseType, &usize, &usize) -> String,
+    Msg: Fn(&I::BaseType, &usize) -> String,
 {
-    iter: Enumerate<I>,
+    iter: I,
+    position: usize,
     max_count: usize,
     msg_writer: Msg,
 }
@@ -31,11 +30,12 @@ where
 impl<I, Msg> AtMost<I, Msg>
 where
     I: Sized + ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    Msg: Fn(&I::BaseType, &usize, &usize) -> String,
+    Msg: Fn(&I::BaseType, &usize) -> String,
 {
     pub(crate) fn new(iter: I, max_count: usize, err_msg: Msg) -> AtMost<I, Msg> {
         AtMost {
-            iter: iter.enumerate(),
+            iter,
+            position: 0,
             max_count,
             msg_writer: err_msg,
         }
@@ -45,20 +45,23 @@ where
 impl<I, Msg> Iterator for AtMost<I, Msg>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    Msg: Fn(&I::BaseType, &usize, &usize) -> String,
+    Msg: Fn(&I::BaseType, &usize) -> String,
 {
     type Item = VResult<I::BaseType>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some((i, Ok(val))) => match i < self.max_count {
-                true => Some(Ok(val)),
+            Some(Ok(val)) => match self.position < self.max_count {
+                true => {
+                    self.position += 1;
+                    Some(Ok(val))
+                }
                 false => {
-                    let msg = (self.msg_writer)(&val, &i, &self.max_count);
+                    let msg = (self.msg_writer)(&val, &self.max_count);
                     Some(Err(ValidErr::TooMany(val, msg)))
                 }
             },
-            Some((_, err)) => Some(err),
+            Some(err) => Some(err),
             None => None,
         }
     }
@@ -67,7 +70,7 @@ where
 impl<I, Msg> ValidIter for AtMost<I, Msg>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    Msg: Fn(&I::BaseType, &usize, &usize) -> String,
+    Msg: Fn(&I::BaseType, &usize) -> String,
 {
     type BaseType = I::BaseType;
 }
@@ -77,14 +80,14 @@ mod tests {
     use std::fmt::Display;
 
     use super::*;
-    use crate::valid_iter::{Unvalidatable, ValidIter};
+    use crate::{out_of_bounds, valid_iter::{Unvalidatable, ValidIter}};
 
     #[test]
     fn test_at_most() {
         (1..10)
             .validate()
-            .at_most(5, |elmt, i, max| {
-                format!("err: elmt {}, i {}, max {}", elmt, i, max)
+            .at_most(5, |elmt, max| {
+                format!("err: elmt {}, max {}", elmt, max)
             })
             .for_each(|res_i| match res_i {
                 Ok(i) => assert!(i < 6),
@@ -93,7 +96,7 @@ mod tests {
                         assert!(element >= 6);
                         assert_eq!(
                             msg,
-                            format!("err: elmt {}, i {}, max 5", element, element - 1)
+                            format!("err: elmt {}, max 5", element)
                         )
                     }
                     _ => panic!("incorrect err for at most validator"),
@@ -105,19 +108,19 @@ mod tests {
     fn test_at_most_has_correct_bounds() {
         let failed_collection = (0..10)
             .validate()
-            .at_most(9, |_, _, _| "".to_string())
+            .at_most(9, |_, _| "".to_string())
             .collect::<Result<Vec<_>, _>>();
         assert!(matches!(failed_collection, Err(ValidErr::TooMany { .. })));
 
         let collection = (0..10)
             .validate()
-            .at_most(10, |_, _, _| "".to_string())
+            .at_most(10, |_, _| "".to_string())
             .collect::<Result<Vec<_>, _>>();
         assert!(matches!(collection, Ok(_)));
 
         let empty_collection = (0..0)
             .validate()
-            .at_most(0, |_, _, _| "".to_string())
+            .at_most(0, |_, _| "".to_string())
             .collect::<Result<Vec<_>, _>>();
         assert!(matches!(empty_collection, Ok(_)));
     }
@@ -126,8 +129,8 @@ mod tests {
     fn test_at_most_all_elements_are_present_and_in_order() {
         (-10..0)
             .validate()
-            .at_most(5, |elmt, i, max| {
-                format!("err: elmt {}, i {}, max {}", elmt, i, max)
+            .at_most(5, |elmt, max| {
+                format!("err: elmt {}, max {}", elmt, max)
             })
             .enumerate()
             .for_each(|(i, res_i)| match i < 5 {
@@ -138,7 +141,7 @@ mod tests {
                 false => match res_i {
                     Err(ValidErr::TooMany(element, msg)) if element == (i as i32 - 10) as i32 => {
                         print!("{}", msg);
-                        assert_eq!(msg, format!("err: elmt {}, i {}, max 5", element, i))
+                        assert_eq!(msg, format!("err: elmt {}, max 5", element))
                     }
                     _ => panic!("bad match for item {}: {:?}", i, res_i),
                 },
@@ -150,14 +153,14 @@ mod tests {
         [0, 1, 2, 3]
             .iter()
             .validate()
-            .at_most(3, |elmt, i, max| {
-                format!("err: elmt {}, i {}, max {}", elmt, i, max)
+            .at_most(3, |elmt, max| {
+                format!("err: elmt {}, max {}", elmt, max)
             })
             .enumerate()
             .for_each(|(i, res_i)| match i < 3 {
                 true => assert!(matches!(res_i, Ok(_))),
                 false => {
-                    let expected_msg = "err: elmt 3, i 3, max 3".to_string();
+                    let expected_msg = "err: elmt 3, max 3".to_string();
                     // assert!(matches!(res_i, Err(ValidErr::TooMany { element: &3, .. })));
 
                     match res_i {
@@ -184,14 +187,14 @@ mod tests {
         let mut iter = [Struct, Struct]
             .iter()
             .validate()
-            .at_most(0, |elmt, i, max| format!("{:?}-{}-{}", elmt, i, max));
+            .at_most(0, |elmt, max| format!("{:?}-{}", elmt, max));
         assert_eq!(
             iter.next(),
-            Some(Err(ValidErr::TooMany(&Struct, "Struct-0-0".to_string())))
+            Some(Err(ValidErr::TooMany(&Struct, "Struct-0".to_string())))
         );
         assert_eq!(
             iter.next(),
-            Some(Err(ValidErr::TooMany(&Struct, "Struct-1-0".to_string())))
+            Some(Err(ValidErr::TooMany(&Struct, "Struct-0".to_string())))
         );
         assert_eq!(iter.next(), None)
     }
@@ -215,7 +218,7 @@ mod tests {
             .at_most(0, too_many!("test" plus_auto));
         match iter.next() {
             Some(Err(ValidErr::TooMany(_, msg))) => {
-                assert_eq!(msg, "testgot 'Struct-display' as the element at index 0 (0-based) of an iteration capped at 0 elements")
+                assert_eq!(msg, "testiteration got 'Struct-display' after exceeding the 0 elements cap")
             }
             _ => panic!("too many error not detected"),
         }
@@ -229,7 +232,7 @@ mod tests {
             .at_most(0, too_many!("test" plus_auto_debug));
         match iter.next() {
             Some(Err(ValidErr::TooMany(_, msg))) => {
-                assert_eq!(msg, "testgot 'Struct' as the element at index 0 (0-based) of an iteration capped at 0 elements")
+                assert_eq!(msg, "testiteration got 'Struct' after exceeding the 0 elements cap")
             }
             _ => panic!("too many error not detected"),
         }
@@ -251,5 +254,19 @@ mod tests {
             }
             _ => panic!("too many error not detected"),
         }
+    }
+
+    #[test]
+    fn test_failure_in_doctests_out_of_bounds_not_ignored() {
+        let mut iter = (-1..=3)
+            .validate()
+            .between(0, 10, out_of_bounds!("element is out of bounds"))
+            .at_most(4, too_many!("limit exceeded"));
+        
+        assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(-1, "element is out of bounds".to_string()))));
+        assert_eq!(iter.next(), Some(Ok(0)));
+        assert_eq!(iter.next(), Some(Ok(1)));
+        assert_eq!(iter.next(), Some(Ok(2)));
+        assert_eq!(iter.next(), Some(Ok(3)));
     }
 }
