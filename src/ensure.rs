@@ -6,7 +6,7 @@ use super::valid_result::VResult;
 pub struct Ensure<I, F>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    F: FnMut(&I::BaseType) -> bool,
+    F: Fn(&I::BaseType) -> bool,
 {
     iter: I,
     validation: F,
@@ -15,7 +15,7 @@ where
 impl<I, F> Ensure<I, F>
 where
     I: Sized + ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    F: FnMut(&I::BaseType) -> bool,
+    F: Fn(&I::BaseType) -> bool,
 {
     pub(crate) fn new(iter: I, validation: F) -> Ensure<I, F> {
         Ensure { iter, validation }
@@ -25,7 +25,7 @@ where
 impl<I, F> Iterator for Ensure<I, F>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    F: FnMut(&I::BaseType) -> bool,
+    F: Fn(&I::BaseType) -> bool,
 {
     type Item = VResult<I::BaseType>;
 
@@ -43,7 +43,7 @@ where
 impl<I, F> ValidIter for Ensure<I, F>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    F: FnMut(&I::BaseType) -> bool,
+    F: Fn(&I::BaseType) -> bool,
 {
     type BaseType = I::BaseType;
 }

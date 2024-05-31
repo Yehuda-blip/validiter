@@ -8,7 +8,7 @@ pub struct ConstOver<I, A, M>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: PartialEq,
-    M: FnMut(&I::BaseType) -> A,
+    M: Fn(&I::BaseType) -> A,
 {
     iter: I,
     stored_value: Option<A>,
@@ -19,7 +19,7 @@ impl<I, A, M> ConstOver<I, A, M>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: PartialEq,
-    M: FnMut(&I::BaseType) -> A,
+    M: Fn(&I::BaseType) -> A,
 {
     pub(crate) fn new(iter: I, extractor: M) -> ConstOver<I, A, M> {
         Self {
@@ -34,7 +34,7 @@ impl<I, A, M> Iterator for ConstOver<I, A, M>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: PartialEq,
-    M: FnMut(&I::BaseType) -> A,
+    M: Fn(&I::BaseType) -> A,
 {
     type Item = VResult<I::BaseType>;
 
@@ -59,7 +59,7 @@ impl<I, A, M> ValidIter for ConstOver<I, A, M>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
     A: PartialEq,
-    M: FnMut(&I::BaseType) -> A,
+    M: Fn(&I::BaseType) -> A,
 {
     type BaseType = I::BaseType;
 }

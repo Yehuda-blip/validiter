@@ -276,7 +276,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// [`Err(ValidErr::Invalid(element))`](crate::valid_result::ValidErr)
     fn ensure<F>(self, validation: F) -> Ensure<Self, F>
     where
-        F: FnMut(&Self::BaseType) -> bool,
+        F: Fn(&Self::BaseType) -> bool,
     {
         Ensure::<Self, F>::new(self, validation)
     }
@@ -335,8 +335,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     fn look_back<A, M, F>(self, extractor: M, validation: F) -> LookBack<Self, A, M, F, 1>
     where
         A: Default,
-        M: FnMut(&Self::BaseType) -> A,
-        F: FnMut(&A, &Self::BaseType) -> bool,
+        M: Fn(&Self::BaseType) -> A,
+        F: Fn(&A, &Self::BaseType) -> bool,
     {
         LookBack::new(self, extractor, validation)
     }
@@ -427,8 +427,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ) -> LookBack<Self, A, M, F, N>
     where
         A: Default,
-        M: FnMut(&Self::BaseType) -> A,
-        F: FnMut(&A, &Self::BaseType) -> bool,
+        M: Fn(&Self::BaseType) -> A,
+        F: Fn(&A, &Self::BaseType) -> bool,
     {
         LookBack::new(self, extractor, validation)
     }
@@ -480,7 +480,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     fn const_over<A, M>(self, extractor: M) -> ConstOver<Self, A, M>
     where
         A: PartialEq,
-        M: FnMut(&Self::BaseType) -> A,
+        M: Fn(&Self::BaseType) -> A,
     {
         ConstOver::new(self, extractor)
     }
