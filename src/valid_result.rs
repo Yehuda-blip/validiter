@@ -15,7 +15,7 @@ pub enum ValidErr<E> {
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`ensure`](crate::ValidIter::ensure) adapter
     Invalid(E),
     /// A general error recieved after using the [`lift_errs`](crate::ErrLiftable::lift_errs) adapter
-    Lifted,
+    Casted,
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`look_back`](crate::ValidIter::look_back) and [`look_back_n`](crate::ValidIter::look_back_n) adapters
     LookBackFailed(E),
     /// Corresponds to the [`ValidIter`](crate::ValidIter) [`const_over`](crate::ValidIter::const_over) adapter
@@ -31,7 +31,7 @@ impl<E> Display for ValidErr<E> {
             ValidErr::TooFew => "ValidErr::TooFew",
             ValidErr::OutOfBounds(_) => "ValidErr::OutOfBounds",
             ValidErr::Invalid(_) => "ValidErr::Invalid",
-            ValidErr::Lifted => "ValidErr::Lifted",
+            ValidErr::Casted => "ValidErr::Lifted",
             ValidErr::LookBackFailed(_) => "ValidErr::LookBackFailed",
             ValidErr::BrokenConstant(_) => "ValidErr::BrokenConstant",
             ValidErr::Mapped => "ValidErr::Mapped",

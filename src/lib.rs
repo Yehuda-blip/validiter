@@ -3,13 +3,13 @@ mod at_most;
 mod between;
 mod const_over;
 mod ensure;
-mod lift_errs;
+mod cast_errs;
 mod look_back;
 mod valid_iter;
 mod valid_result;
 mod validatable;
 
-pub use lift_errs::ErrLiftable;
+pub use cast_errs::ErrCastable;
 pub use valid_iter::{Unvalidatable, ValidIter};
 pub use valid_result::{VResult, ValidErr};
 

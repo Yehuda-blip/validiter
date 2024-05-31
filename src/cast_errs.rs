@@ -1,14 +1,14 @@
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 #[derive(Debug, Clone)]
-pub struct LiftErrs<OkType, ErrType, I>
+pub struct CastErrs<OkType, ErrType, I>
 where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized,
 {
     iter: I,
 }
 
-impl<OkType, ErrType, I> LiftErrs<OkType, ErrType, I>
+impl<OkType, ErrType, I> CastErrs<OkType, ErrType, I>
 where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized,
 {
@@ -17,7 +17,7 @@ where
     }
 }
 
-impl<OkType, ErrType, I> Iterator for LiftErrs<OkType, ErrType, I>
+impl<OkType, ErrType, I> Iterator for CastErrs<OkType, ErrType, I>
 where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized,
 {
@@ -25,14 +25,14 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(Err(_err_type)) => Some(Err(ValidErr::Lifted)),
+            Some(Err(_err_type)) => Some(Err(ValidErr::Casted)),
             Some(Ok(ok_type)) => Some(Ok(ok_type)),
             None => None,
         }
     }
 }
 
-impl<OkType, ErrType, I> ValidIter for LiftErrs<OkType, ErrType, I>
+impl<OkType, ErrType, I> ValidIter for CastErrs<OkType, ErrType, I>
 where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized,
 {
@@ -45,15 +45,15 @@ where
 /// This trait was not written to be implemented, but is not sealed. If you want 
 /// to allow converting some specific type to a [`ValidIter`], consider using this
 /// trait.
-pub trait ErrLiftable<OkType, ErrType>:
+pub trait ErrCastable<OkType, ErrType>:
     Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized
 {
     /// Turns an iterator over `Result<OkType, ValidErr<ErrType>>>`
     /// into a [`ValidIter`] over [`VResult<OkType>`](crate::valid_result::VResult) by dropping all
     /// the [`ValidErr<ErrType>`] elements and replacing them with
-    /// [`ValidErr<OkType>::Lifted`].
+    /// [`ValidErr<OkType>::Casted`].
     ///
-    /// `lift_errs` is useful in 2 scenarios:
+    /// `cast_errs` is useful in 2 scenarios:
     /// 1. When some opertion on the iterator
     /// causes a change in the underlying type of element (usually,
     /// collecting an iterator).
@@ -66,7 +66,7 @@ pub trait ErrLiftable<OkType, ErrType>:
     /// This would be better explained with an example:
     /// # Examples
     /// ```
-    /// # use crate::validiter::{ValidIter, ErrLiftable, ValidErr};
+    /// # use crate::validiter::{ValidIter, ErrCastable, ValidErr};
     /// #
     /// // is this csv a matrix of positive values?
     /// let csv = "1.2, 3.0
@@ -78,26 +78,26 @@ pub trait ErrLiftable<OkType, ErrType>:
     ///                 .map(|s| s.trim())
     ///                 .map(|s| s.parse::<f64>().map_err(|_| ValidErr::<f64>::Mapped))
     ///                 // the iterator is over VResult<f64>, but map is not a ValidIter!
-    ///                 .lift_errs()
+    ///                 .cast_errs()
     ///                 .ensure(|f| *f >= 0.0)
     ///                 .collect::<Result<Vec<f64>, ValidErr<f64>>>()
     ///             })
     ///             // OkType is a vector, but ErrType is f64!
-    ///             .lift_errs()
+    ///             .cast_errs()
     ///             .collect::<Result<Vec<_>, _>>(); // now ErrType is also a Vec<f64>
     ///
-    /// assert_eq!(mat, Err(ValidErr::Lifted)); // the element at pos [1][1] would have been negative, failing the ensure validation
+    /// assert_eq!(mat, Err(ValidErr::Casted)); // the element at pos [1][1] would have been negative, failing the ensure validation
     ///
     /// ```
     ///
     /// [`VResult<OkType>`](crate::valid_result::VResult)
     /// [`validate`](crate::valid_iter::Unvalidatable::validate)
-    fn lift_errs(self) -> LiftErrs<OkType, ErrType, Self> {
-        LiftErrs::new(self)
+    fn cast_errs(self) -> CastErrs<OkType, ErrType, Self> {
+        CastErrs::new(self)
     }
 }
 
-impl<OkType, ErrType, I> ErrLiftable<OkType, ErrType> for I where
+impl<OkType, ErrType, I> ErrCastable<OkType, ErrType> for I where
     I: Iterator<Item = Result<OkType, ValidErr<ErrType>>> + Sized
 {
 }
@@ -109,7 +109,7 @@ mod tests {
         valid_result::ValidErr,
     };
 
-    use super::ErrLiftable;
+    use super::ErrCastable;
 
     // third line contains uppercase 'B'
     const TEST_STR: &str = "abcd
@@ -127,9 +127,9 @@ mod tests {
                     .ensure(|c| c.is_lowercase())
                     .collect::<Result<Vec<char>, _>>()
             })
-            .lift_errs()
+            .cast_errs()
             .collect::<Result<Vec<Vec<char>>, _>>();
-        assert_eq!(error, Err(ValidErr::Lifted));
+        assert_eq!(error, Err(ValidErr::Casted));
     }
 
     #[test]
@@ -143,7 +143,7 @@ mod tests {
                     .filter(|vec| vec.is_ok())
                     .collect::<Result<Vec<char>, _>>()
             })
-            .lift_errs()
+            .cast_errs()
             .collect::<Result<Vec<Vec<char>>, _>>();
         assert_eq!(
             ok,
@@ -166,7 +166,7 @@ mod tests {
                     .ensure(|c| c.is_lowercase())
                     .collect::<Result<Vec<char>, _>>()
             })
-            .lift_errs()
+            .cast_errs()
             .filter(|vector| vector.is_ok())
             .collect::<Result<Vec<Vec<char>>, _>>();
         assert_eq!(
