@@ -21,13 +21,13 @@ pub trait Unvalidatable: Iterator + Sized {
     /// # Examples
     /// ```compile_fail
     /// // this does not compile
-    /// let mut iter = (1..).at_least(3);
+    /// let mut iter = (1..).at_least(3, too_few!("some message"));
     /// ```
     /// ```
     /// // this compiles
-    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr, too_few};
     /// #
-    /// let mut iter = (1..).validate().at_least(3);
+    /// let mut iter = (1..).validate().at_least(3, too_few!("some message"));
     /// ```
     ///
     /// `validate` could technically be called on a [`ValidIter`] if
@@ -56,9 +56,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
 
     /// Fails a validation iterator if it contains more than `n` elements.
     ///
-    /// `at_most(n)` yeilds `Ok(element)` values until `n` elements are yielded,
+    /// `at_most(n)` yields `Ok(element)` values until `n` elements are yielded,
     /// or the end of the iterator is reached. If values are still in the iteration,
-    /// they will be wrapped in `Err(ValidErr::TooMany(element))`.
+    /// they will be wrapped in `Err(ValidErr::TooMany(element, msg))`.
     ///
     /// Elements already wrapped in `Err(ValidErr::<some valid err variant>)` will not be
     /// counted towards reaching the `n` elements upper bound.
@@ -70,11 +70,13 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let a = [1, 2, 3];
-    /// let mut iter = a.iter().validate().at_most(2);
+    /// let mut iter = a.iter()
+    ///                 .validate()
+    ///                 .at_most(2, |element, index, max_length| format!("Too many elements, found '{element}' at index {index}, but the iteration is capped at {max_length}"));
     ///
     /// assert_eq!(iter.next(), Some(Ok(&1)));
     /// assert_eq!(iter.next(), Some(Ok(&2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooMany(&3))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooMany(&3, "Too many elements, found '3' at index 2, but the iteration is capped at 2".to_string()))));
     /// ```
     ///
     /// Generally, `at_most` could be thought of as a not-quite-as-useful
@@ -84,18 +86,21 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
-    /// let mut collection_result: Result<Vec<_>, _> = (0..).take(1_000_000_000).validate().at_most(10).collect::<Result<_, _>>();
+    /// let mut collection_result: Result<Vec<_>, _> = (0..).take(1_000_000_000).validate().at_most(10, |_, _, _| "".to_string()).collect::<Result<_, _>>();
     ///
-    /// assert_eq!(collection_result, Err(ValidErr::TooMany(10)));
+    /// assert_eq!(collection_result, Err(ValidErr::TooMany(10, "".to_string())));
     /// ```
     ///
+    /// The [`too_many`](crate::too_many) macro is an associated message writing utility,
+    /// and will be used in the following examples.
+    /// 
     /// `at_most` will not account for validation errors already in the iteration:
     /// ```
-    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
+    /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr, too_many, out_of_bounds};
     /// #
-    /// let mut iter = (-1..=3).validate().between(0, 10).at_most(4);
+    /// let mut iter = (-1..=3).validate().between(0, 10, out_of_bounds!("element is out of bounds")).at_most(4, too_many!("limit exceeded"));
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(-1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(-1, "element is out of bounds".to_string()))));
     /// assert_eq!(iter.next(), Some(Ok(0)));
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2)));
@@ -106,7 +111,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     fn at_most<Msg>(self, n: usize, too_many: Msg) -> AtMost<Self, Msg>
     where
-        Msg: Fn(&Self::BaseType, &usize, &usize) -> String,
+        Msg: Fn(&Self::BaseType, &usize) -> String,
     {
         AtMost::<Self, Msg>::new(self, n, too_many)
     }

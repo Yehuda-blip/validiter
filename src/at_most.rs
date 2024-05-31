@@ -16,6 +16,7 @@ macro_rules! too_many {
 }
 
 #[derive(Debug, Clone)]
+/// This struct is created by the [`at_most`](crate::ValidIter::at_most) method on [`ValidIter`]. See its documetation for more.
 pub struct AtMost<I, Msg>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,

@@ -29,7 +29,7 @@ mod tests {
             .validate()
             .const_over(|i| *i >= 0, |_, _, _| "1".to_string())
             .look_back_n::<10, _, _, _, _>(|i| *i, |prev, curr| prev == curr, |_, _| "2".to_string())
-            .at_most(7, |_, _, _| "3".to_string())
+            .at_most(7, |_, _| "3".to_string())
             .between(2, 8, |_, _, _| "4".to_string())
             .ensure(|i| i % 2 == 0, |_| "5".to_string())
             .at_least(4, |_, _| "6".to_string())

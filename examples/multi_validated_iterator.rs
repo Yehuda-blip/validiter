@@ -12,7 +12,7 @@ fn main() {
     // validation.
     (0..10)
         .validate()
-        .at_most(7, |elmt, index, max_len| format!("oops, an iteration with at most {max_len} elements can't have a {index}-th element, but we found {elmt}!"))
+        .at_most(7, |elmt, max_len| format!("oops, we found {elmt} after {max_len} elements!"))
         .between(2, 8, out_of_bounds!("dammit: " plus_auto))
         .ensure(|i| i % 2 == 0, invalid!(""))
         .at_least(4, too_few!("just not quite enough... " plus_auto))

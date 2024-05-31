@@ -3,6 +3,13 @@ use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 use super::valid_result::VResult;
 
 #[macro_export]
+/// A thin wrapper around the [`format`] macro that can automatically generate
+/// message-closures for the [`at_least`](crate::ValidIter::at_least) validation adapter.
+/// 
+/// Just dumping a descriptor:
+/// ```
+/// # use crate::
+/// ```
 macro_rules! too_few {
     ($description:literal) => {
         |_, _| $description.to_string()
@@ -13,6 +20,7 @@ macro_rules! too_few {
 }
 
 #[derive(Debug, Clone)]
+/// This struct is created by the [`at_least`](crate::ValidIter::at_least) method on [`ValidIter`]. See its documetation for more.
 pub struct AtLeast<I, Msg>
 where
     I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
