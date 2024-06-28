@@ -4,6 +4,8 @@ use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
+
+/// The [`Between`] ValidIter adapter, for more info see [`between`](crate::ValidIter::between).
 #[derive(Debug, Clone)]
 pub struct Between<I>
 where

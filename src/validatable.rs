@@ -1,5 +1,6 @@
 use super::{valid_iter::ValidIter, valid_result::VResult};
 
+/// The trait defining a validatable [`Iterator`]. For more information, see [`validate`](crate::Unvalidatable::validate)
 #[derive(Debug, Clone)]
 pub struct Validatable<I: Iterator> {
     iter: I,

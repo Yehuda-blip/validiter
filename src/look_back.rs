@@ -4,6 +4,8 @@ use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
+/// The [`LookBack`] ValidIter adapter, for more info see
+///  [`look_back`](crate::ValidIter::look_back) and [`look_back_n`](crate::ValidIter::look_back_n).
 #[derive(Debug, Clone)]
 pub struct LookBack<I, A, M, F, const N: usize>
 where

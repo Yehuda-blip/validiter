@@ -4,6 +4,8 @@ use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
+
+/// The [`AtMost`] ValidIter adapter, for more info see [`at_most`](crate::ValidIter::at_most).
 #[derive(Debug, Clone)]
 pub struct AtMost<I>
 where

@@ -4,6 +4,7 @@ use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
 
+/// The [`Ensure`] ValidIter adapter, for more info see [`ensure`](crate::ValidIter::ensure).
 #[derive(Debug, Clone)]
 pub struct Ensure<I, F>
 where

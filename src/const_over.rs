@@ -5,6 +5,8 @@ use crate::{
     valid_result::{VResult, ValidErr},
 };
 
+
+/// The [`ConstOver`] ValidIter adapter, for more info see [`const_over`](crate::ValidIter::const_over).
 #[derive(Debug, Clone)]
 pub struct ConstOver<I, A, M>
 where

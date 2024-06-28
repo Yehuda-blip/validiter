@@ -1,5 +1,7 @@
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
+
+/// The [`CastErrs`] ValidIter adapter, for more info see [`cast_errs`](crate::cast_errs).
 #[derive(Debug, Clone)]
 pub struct CastErrs<OkType, ErrType, I>
 where

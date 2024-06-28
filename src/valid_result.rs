@@ -4,10 +4,15 @@ use std::{
     rc::Rc,
 };
 
+/// An enum for the possible shapes of a [`ValidIter`](crate::ValidIter) error.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValidErr<E> {
+    /// Contains an [`Rc::(str)`] where the [`str`] is the token passed to the erroring [`ValidIter`](crate::ValidIter).
+    /// Created by validiter adapters when returning the error-causing element is impossible or meaningless.
     Description(Rc<str>),
+    /// Contains the element that caused the error, and an [`Rc::(str)`] where the [`str`] is the token passed 
+    /// to the erroring [`ValidIter`](crate::ValidIter).
     WithElement(E, Rc<str>),
 }
 
@@ -23,4 +28,5 @@ impl<E> Display for ValidErr<E> {
 
 impl<E> Error for ValidErr<E> where E: Debug {}
 
+/// An alias for [`Result<E, ValidErr<E>>`]. See [`ValidErr<E>`](crate::ValidErr)
 pub type VResult<E> = Result<E, ValidErr<E>>;
