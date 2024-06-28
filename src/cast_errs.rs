@@ -1,6 +1,5 @@
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
-
 /// The [`CastErrs`] ValidIter adapter, for more info see [`cast_errs`](crate::cast_errs).
 #[derive(Debug, Clone)]
 pub struct CastErrs<OkType, ErrType, I>
@@ -43,9 +42,9 @@ where
 }
 
 /// The trait defining iterators that can be transformed into
-/// a [`ValidIter`](ValidIter) without calling [`validate`](crate::Unvalidatable::validate). 
-/// 
-/// This trait was not written to be implemented, but is not sealed. If you want 
+/// a [`ValidIter`](ValidIter) without calling [`validate`](crate::Unvalidatable::validate).
+///
+/// This trait was not written to be implemented, but is not sealed. If you want
 /// to allow converting some specific type to a [`ValidIter`], consider using this
 /// trait.
 pub trait ErrCastable<OkType, ErrType>:
@@ -54,7 +53,7 @@ pub trait ErrCastable<OkType, ErrType>:
     /// Turns an iterator over `Result<OkType, ValidErr<ErrType>>>`
     /// into a [`ValidIter`] over [`VResult<OkType>`](crate::valid_result::VResult) by dropping all
     /// the [`ValidErr<ErrType>`] elements and replacing them with
-    /// [`ValidErr<OkType>::Casted`].
+    /// [`ValidErr<OkType>::Description`](crate::ValidErr::Description).
     ///
     /// `cast_errs` is useful in 2 scenarios:
     /// 1. When some opertion on the iterator
@@ -69,28 +68,37 @@ pub trait ErrCastable<OkType, ErrType>:
     /// This would be better explained with an example:
     /// # Examples
     /// ```
-    /// # use crate::validiter::{ValidIter, ErrCastable, ValidErr};
-    /// #
-    /// // is this csv a matrix of positive values?
-    /// let csv = "1.2, 3.0
-    ///            4.2, -0.5";
-    /// let mat = csv
-    ///             .lines()
-    ///             .map( |line| {
-    ///                 line.split(",")
-    ///                 .map(|s| s.trim())
-    ///                 .map(|s| s.parse::<f64>().map_err(|_| ValidErr::<f64>::Mapped))
-    ///                 // the iterator is over VResult<f64>, but map is not a ValidIter!
-    ///                 .cast_errs()
-    ///                 .ensure(|f| *f >= 0.0)
-    ///                 .collect::<Result<Vec<f64>, ValidErr<f64>>>()
+    ///     # use std::rc::Rc;
+    ///     # use validiter::{ErrCastable, ValidErr, ValidIter};
+    ///     #
+    ///     let csv = "1.2, 3.0
+    ///                4.2, -0.5";
+    ///     let mat = csv
+    ///     .lines()
+    ///     .map(|line| {
+    ///     line.split(",")
+    ///         .map(|s| s.trim())
+    ///         .map(|s| {
+    ///             s.parse::<f64>().map_err(|e| {
+    ///                 ValidErr::<f64>::Description(Rc::from(
+    ///                     format!("f64 read error {e}").as_str(),
+    ///                 ))
     ///             })
-    ///             // OkType is a vector, but ErrType is f64!
-    ///             .cast_errs()
-    ///             .collect::<Result<Vec<_>, _>>(); // now ErrType is also a Vec<f64>
+    ///         })
+    ///         // the iterator is over VResult<f64>, but map is not a ValidIter!
+    ///         .cast_errs()
+    ///         .ensure(|f| *f >= 0.0, "negative value found")
+    ///         .collect::<Result<Vec<f64>, ValidErr<f64>>>()
+    ///     })
+    ///     // OkType is a vector, but ErrType is f64!
+    ///     .cast_errs()
+    ///     .collect::<Result<Vec<_>, _>>(); // now ErrType is also a Vec<f64>
     ///
-    /// assert_eq!(mat, Err(ValidErr::Casted)); // the element at pos [1][1] would have been negative, failing the ensure validation
-    ///
+    ///     // the element at pos [1][1] would have been negative, failing the ensure validation
+    ///     assert_eq!(
+    ///         mat,
+    ///         Err(ValidErr::Description(Rc::from("negative value found")))
+    ///     );
     /// ```
     ///
     /// [`VResult<OkType>`](crate::valid_result::VResult)
@@ -109,7 +117,7 @@ impl<OkType, ErrType, I> ErrCastable<OkType, ErrType> for I where
 mod tests {
     use std::rc::Rc;
 
-    use crate::{Unvalidatable, ValidIter, valid_result::ValidErr};
+    use crate::{valid_result::ValidErr, Unvalidatable, ValidIter};
 
     use super::ErrCastable;
 
