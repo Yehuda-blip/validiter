@@ -5,7 +5,7 @@ use super::{valid_iter::ValidIter, valid_result::VResult};
 /// While it is not sealed, you should probably not implement it
 /// unless you're feeling experimental.
 ///
-/// When you use this trait, all iterators have the method [`validate`](Unvalidatable::validate), and
+/// When you use this trait, all [`Sized`] iterators have the method [`validate`](Unvalidatable::validate), and
 /// can turn to [`ValidIter`] iterators.
 ///
 pub trait Unvalidatable: Iterator + Sized {
@@ -17,13 +17,13 @@ pub trait Unvalidatable: Iterator + Sized {
     /// # Examples
     /// ```compile_fail
     /// // this does not compile
-    /// let mut iter = (1..).at_least(3);
+    /// let mut iter = (1..).at_least(3, "not enough!");
     /// ```
     /// ```
     /// // this compiles
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
-    /// let mut iter = (1..).validate().at_least(3);
+    /// let mut iter = (1..).validate().at_least(3, "not enough!");
     /// ```
     ///
     /// `validate` could technically be called on a [`ValidIter`] if

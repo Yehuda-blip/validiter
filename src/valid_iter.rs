@@ -12,9 +12,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
 
     /// Fails a validation iterator if it contains more than `n` elements.
     ///
-    /// `at_most(n)` yeilds `Ok(element)` values until `n` elements are yielded,
+    /// `at_most(n, description)` yields `Ok(element)` values until `n` elements are yielded,
     /// or the end of the iterator is reached. If values are still in the iteration,
-    /// they will be wrapped in `Err(ValidErr::TooMany(element))`.
+    /// they will be wrapped in `Err(ValidErr::WithElement(element, Rc(description)))`.
     ///
     /// Elements already wrapped in `Err(ValidErr::<some valid err variant>)` will not be
     /// counted towards reaching the `n` elements upper bound.
@@ -23,14 +23,15 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let a = [1, 2, 3];
-    /// let mut iter = a.iter().validate().at_most(2);
+    /// let mut iter = a.iter().validate().at_most(2, "no more than 2");
     ///
     /// assert_eq!(iter.next(), Some(Ok(&1)));
     /// assert_eq!(iter.next(), Some(Ok(&2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooMany(&3))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(&3, Rc::from("no more than 2")))));
     /// ```
     ///
     /// Generally, `at_most` could be thought of as a not-quite-as-useful
@@ -38,20 +39,26 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// that collecting an iterator does not result in an unexpected amount
     /// of values in-memory:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
-    /// let mut collection_result: Result<Vec<_>, _> = (0..).take(1_000_000_000).validate().at_most(10).collect::<Result<_, _>>();
-    ///
-    /// assert_eq!(collection_result, Err(ValidErr::TooMany(10)));
+    ///     let collection_result: Result<Vec<_>, _> = (0..)
+    ///         .take(1_000_000_000)
+    ///         .validate()
+    ///         .at_most(10, "not a lot")
+    ///         .collect::<Result<_, _>>();
+    /// 
+    ///     assert_eq!(collection_result, Err(ValidErr::WithElement(10, Rc::from("not a lot"))));   
     /// ```
     ///
     /// `at_most` will not account for validation errors already in the iteration:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
-    /// let mut iter = (-1..=3).validate().between(0, 10).at_most(4);
+    /// let mut iter = (-1..=3).validate().between(0, 10, "out of bounds!").at_most(4, "too many!");
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(-1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(-1, Rc::from("out of bounds!")))));
     /// assert_eq!(iter.next(), Some(Ok(0)));
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2)));
@@ -66,9 +73,9 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
 
     /// Fails a validation iterator if it does not contain `n` or more elements.
     ///
-    /// `at_least(n)` yields `Ok(element)` values until the iteration ends. If the
-    /// number of values in the iteration is less than `n`, a new element would be
-    /// added to the end of the iteration with the value `Err(ValidErr::TooFew)`.
+    /// `at_least(n, description)` yields `Ok(element)` values until the iteration ends. If the
+    /// number of values in the iteration is less than `n`, a new element is
+    /// added to the end of the iteration with the value `Err(ValidErr::Description(Rc(description)))`.
     ///
     /// The `at_least` adapter cannot handle short-circuiting of iterators, so
     /// iterations such as `(0..10).validate().at_least(100).take(5)` will not
@@ -81,15 +88,16 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let a = [1, 2, 3];
-    /// let mut iter = a.iter().validate().at_least(4);
+    /// let mut iter = a.iter().validate().at_least(4, "not enough!");
     ///
     /// assert_eq!(iter.next(), Some(Ok(&1)));
     /// assert_eq!(iter.next(), Some(Ok(&2)));
     /// assert_eq!(iter.next(), Some(Ok(&3)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooFew)));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Description(Rc::from("not enough!")))));
     /// assert_eq!(iter.next(), None);
     /// ```
     ///
@@ -100,7 +108,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// #
     /// let iter = (0..=2); // iteration is too short, no 4th element!
     ///
-    /// let collection: Result<Vec<_>, _> = iter.validate().at_least(4).collect();
+    /// let collection: Result<Vec<_>, _> = iter.validate().at_least(4, "no fourth!").collect();
     ///
     /// match collection {
     ///     Ok(vec) => {let val = vec[3];}, // doesn't crash, because the collection failed.
@@ -109,14 +117,18 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     /// `at_least` will not account for validation errors already in the iteration:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
-    /// let mut iter = (0..=2).validate().between(1, 10).at_least(3);
+    /// let mut iter = (0..=2)
+    ///                     .validate()
+    ///                     .between(1, 10, "out of bounds!")
+    ///                     .at_least(3, "not enough!");
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(0))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(0, Rc::from("out of bounds!")))));
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::TooFew))); // err element added, because the first element does not count.
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::Description(Rc::from("not enough!"))))); // err element added, because the first element does not count.
     /// ```
     ///
     /// [`Err(ValidErr::TooFew)`](crate::valid_result::ValidErr)
@@ -127,8 +139,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// Fails a validation iterator on [`PartialOrd`] elements if one the elements
     /// is out of the argument bounds.
     ///
-    /// `between(lowest, highest)` wraps any value `val` which violates the constraint
-    /// `lowest <= val && val <= highest` in a `Err(ValidErr::OutOfBounds(val))`.
+    /// `between(lowest, highest, description)` wraps any value `val` which violates the constraint
+    /// `lowest <= val && val <= highest` in a `Err(ValidErr::WithElement(val, Rc(description)))`.
     /// Otherwise, `Ok(val)` is yielded.
     ///
     /// Elements already wrapped in type `Err(ValidErr::<some valid err variant>)` are ignored.
@@ -137,28 +149,32 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let a = [1, 2, 3, 4];
-    /// let mut iter = a.iter().validate().between(&2, &3);
+    /// let mut iter = a.iter().validate().between(&2, &3, "out of bounds!");
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(&1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(&1, Rc::from("out of bounds!")))));
     /// assert_eq!(iter.next(), Some(Ok(&2)));
     /// assert_eq!(iter.next(), Some(Ok(&3)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(&4))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(&4, Rc::from("out of bounds!")))));
     /// ```
     ///
     /// Partial-Equality is also supported:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let a = [f64::NAN];
-    /// let mut iter = a.iter().validate().between(&2.0, &3.0);
+    /// let mut iter = a.iter().validate().between(&2.0, &3.0, "out of bounds!");
     ///
     /// // we can't compare a NaN, so we'll pattern-match:
     /// match iter.next() {
     ///     // this is the value we get
-    ///     Some(Err(ValidErr::OutOfBounds(val))) => {assert!(val.is_nan());}
+    ///     Some(Err(ValidErr::WithElement(val, msg))) => {
+    ///         assert!(val.is_nan() && msg == Rc::from("out of bounds!"));
+    ///     }
     ///
     ///    // won't happen, '&f64::NAN' violates '&2.0 <= val && val <= &3.0'
     ///     Some(Ok(_)) => {panic!()}
@@ -184,11 +200,11 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// Applies a closure constraint too each element, and fails the
     /// iteration if any element violates the constraint.
     ///
-    /// `ensure(validation)` is the general validation tool, it takes
+    /// `ensure(validation, description)` is the general validation tool, it takes
     /// a boolean test as an argument and applies it to each of the
     /// elements in the iteration. If the test returns `true`, the element
     /// is wrapped in `Ok(element)`. Otherwise, it is wrapped in
-    /// `Err(ValidErr::Invalid(element))`.
+    /// `Err(ValidErr::WithElement(element, Rc::from(description)))`.
     ///
     /// Values of type `Err(ValidErr::<some valid err variant>)` are ignored.
     ///
@@ -196,42 +212,48 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
-    /// let mut iter = (0..=3).validate().ensure(|i| i % 2 == 0);
+    /// let mut iter = (0..=3).validate().ensure(|i| i % 2 == 0, "odd!");
     ///
     /// assert_eq!(iter.next(), Some(Ok(0)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(1, Rc::from("odd!")))));
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(3))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(3, Rc::from("odd!")))));
     /// ```
     ///
     /// You might want to chain `ensure` validations to create
     /// a more complex test:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut iter = (0..=3)
     ///             .validate()
-    ///             .ensure(|i| i % 2 == 0)
-    ///             .ensure(|i| *i > 0);
+    ///             .ensure(|i| i % 2 == 0, "odd!")
+    ///             .ensure(|i| *i > 0, "non-positive!");
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(0))));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(0, Rc::from("non-positive!")))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(1, Rc::from("odd!")))));
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(3))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(3, Rc::from("odd!")))));
     /// ```
     ///
     /// `ensure` ignores error elements:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
-    /// let mut iter = (0..=3).validate().between(2, 3).ensure(|i| i % 2 == 0);
+    /// let mut iter = (0..=3)
+    ///                     .validate()
+    ///                     .between(2, 3, "out of bounds!")
+    ///                     .ensure(|i| i % 2 == 0, "odd!");
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(0))));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::OutOfBounds(1)))); // invalid, but not tested
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(0, Rc::from("out of bounds!")))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(1, Rc::from("out of bounds!"))))); // invalid, but not tested
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid(3))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(3, Rc::from("odd!")))));
     /// ```
     ///
     /// [`Err(ValidErr::Invalid(element))`](crate::valid_result::ValidErr)
@@ -244,7 +266,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
 
     /// Tests each element in the iteration based on the previous element.
     ///
-    /// `look_back(extractor, validation)` is sugar for calling
+    /// `look_back(extractor, validation, description)` is sugar for calling
     /// [`look_back_n<1, _, _, _>::(extractor, validation)`](ValidIter::look_back_n). It takes
     /// 2 closure arguments:
     /// 1. `extractor` - a mapping of iterator elements to some extracted
@@ -254,7 +276,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// this value.
     ///
     /// Elements which fail the `validation` test will be wrapped in
-    /// `Err(ValidErr::LookBackFailed(element))`.
+    /// `Err(ValidErr::WithElement(element, Rc(description)))`.
     ///
     /// Elements already wrapped in a `Err(ValidErr::<some valid err variant>)`
     /// are ignored by both the `extractor` and the `validation` closures.
@@ -263,26 +285,31 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// // is the iteration ordered?
-    /// let mut iter = (0..=2).chain(1..=1).validate().look_back(|i| *i, |prev, i| prev <= i);
+    /// let mut iter = (0..=2)
+    ///                     .chain(1..=1)
+    ///                     .validate()
+    ///                     .look_back(|i| *i, |prev, i| prev <= i, "unordered element!");
     ///
     /// assert_eq!(iter.next(), Some(Ok(0))); // first value is never tested
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2)));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed(1))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(1, Rc::from("unordered element!")))));
     /// ```
     ///
     /// Or maybe a slightly more exotic test:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// // Does the iteration converge?
     /// const EPSILON: f64 = 0.0001;
     /// let mut iter = (0..).map(|i| (-1_f64).powi(i) / 2_f64.powi(i))
     ///                     .validate()
-    ///                     .look_back(|i| i.abs(), |prev, i| prev * (1.0 - EPSILON) >= *i )
+    ///                     .look_back(|i| i.abs(), |prev, i| prev * (1.0 - EPSILON) >= *i, "convergence failed!")
     ///                     .take(4);
     ///
     /// assert_eq!(iter.next(), Some(Ok(1.0)));
@@ -310,7 +337,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// Fails an iteration if it does not conform to some cycling
     /// of properties.
     ///
-    /// `look_back_n::<N, _, _, _>(extractor, validation)` takes 3
+    /// `look_back_n::<N, _, _, _>(extractor, validation, description)` takes 4
     /// arguments:
     /// 1. `N` - a constant `usize` describing a cycle length
     /// 2. `extractor` - a mapping of iterator elements to some extracted
@@ -318,15 +345,15 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// 3. `validation` - a test which accepts the value extracted from
     /// the Nth preceding element, and tests the current element based
     /// on this value.
+    /// 4. A validation descriptor/identifier.
     ///
     /// Each iterator element wrapped in `Ok(element)` gets processed in
     /// these 2 ways:
     /// 1. Assuming there was a previous Nth element (we'll call it `p_nth`),
     /// the current element is tested for `validation(extractor(p_nth), element)`.
     /// 2. If the element passed the test, it is wrapped in `Ok(element)`.
-    /// otherwise it wrapped in `Err(ValidErr::LookBackFailed(element))`, and
-    /// will not be used to test the next nth element (that is, the next nth
-    /// element would be compared with the previous value).
+    /// otherwise it wrapped in `Err(ValidErr::WithElement(element, Rc(description)))`, and
+    /// will not be used to test the next nth element.
     ///
     /// Because of the underlying implementation, you must specify the generic
     /// constant `N` when calling the method, and so you also must allow for
@@ -341,24 +368,27 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///  - The values actually stored inside the iterator memory are precomputed
     /// results of `extractor`. For example - if the iteration is over elements of
     /// type `Vec<i32>` and the extractor closure is `|v| v.iter().sum()`, the
-    /// type of the stored value is `i32`, rather than `Vec<i32>`. This means
-    /// that the `extractor` function is meant to act as a "pre-compute/compress"
-    /// option when such functionality is required.
+    /// type of the stored value is `i32`, rather than `Vec<i32>`.
     ///
     /// # Examples
     ///
     /// Basic usage:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let mut iter = (0..=2).chain(2..=4)
     ///                     .validate()
-    ///                     .look_back_n::<2, _, _, _>(|i| *i, |prev, i| prev % 2 == i % 2);
+    ///                     .look_back_n::<2, _, _, _>(
+    ///                         |i| *i,
+    ///                         |prev, i| prev % 2 == i % 2,
+    ///                         "look back failed!"
+    ///                     );
     ///
     /// assert_eq!(iter.next(), Some(Ok(0)));
     /// assert_eq!(iter.next(), Some(Ok(1)));
     /// assert_eq!(iter.next(), Some(Ok(2))); // evaluated with respect to 0
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed(2)))); // evaluated with respect to 1
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement(2, Rc::from("look back failed!"))))); // evaluated with respect to 1
     /// assert_eq!(iter.next(), Some(Ok(3))); // also evaluated with respect to 1
     /// assert_eq!(iter.next(), Some(Ok(4))); // evaluted with respect to 2
     /// ```
@@ -366,6 +396,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// `look_back_n` could be used to force an iteration to cycle through
     /// a sequence of predetermined properties:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let sequence = "abc";
@@ -373,15 +404,15 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// let mut iter = sequence.chars().chain(s.chars())
     ///                 .validate()
-    ///                 .look_back_n::<3, _, _, _>(|c| *c, |p_nth, c| p_nth == c);
+    ///                 .look_back_n::<3, _, _, _>(|c| *c, |p_nth, c| p_nth == c, "cycle failed!");
     ///
     /// assert_eq!(iter.next(), Some(Ok('a')));
     /// assert_eq!(iter.next(), Some(Ok('b')));
     /// assert_eq!(iter.next(), Some(Ok('c')));
     /// assert_eq!(iter.next(), Some(Ok('a')));
     /// assert_eq!(iter.next(), Some(Ok('b')));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed('f'))));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::LookBackFailed('b'))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement('f', Rc::from("cycle failed!")))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement('b', Rc::from("cycle failed!")))));
     /// assert_eq!(iter.next(), Some(Ok('c')));
     /// ```
     ///
@@ -403,11 +434,11 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// Fails an iteration if `extractor` does not give the same result
     /// for all elements.
     ///
-    /// `const_over(extractor)` takes a closure argument that computes
+    /// `const_over(extractor, description)` takes a closure argument that computes
     /// some value for each element in iteration. If for some element
     /// this results in a value which is not equal to value computed
     /// from the first element, this element is wrapped in
-    /// `Err(ValidErr::BrokenConstant(element))`. Otherwise, the element
+    /// `Err(ValidErr::WithElement(element, Rc::from(description)))`. Otherwise, the element
     /// is wrapped in `Ok(element)`. The first valid element is always wrapped
     /// in `Ok`.
     ///
@@ -415,32 +446,34 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// Basic usage:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let uppercase = "ABc";
-    /// let mut iter = uppercase.chars().validate().const_over(|c| c.is_uppercase());
+    /// let mut iter = uppercase.chars().validate().const_over(|c| c.is_uppercase(), "case changed!");
     ///
     /// assert_eq!(iter.next(), Some(Ok('A')));
     /// assert_eq!(iter.next(), Some(Ok('B')));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::BrokenConstant('c'))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement('c', Rc::from("case changed!")))));
     /// ```
     ///
     /// `const_over` ignores validation errors:
     /// ```
+    /// # use std::rc::Rc;
     /// # use crate::validiter::{Unvalidatable, ValidIter, ValidErr};
     /// #
     /// let uppercase = "1AB2c";
     /// let mut iter = uppercase
     ///                     .chars()
     ///                     .validate()
-    ///                     .ensure(|c| c.is_alphabetic())
-    ///                     .const_over(|c| c.is_uppercase());
+    ///                     .ensure(|c| c.is_alphabetic(), "not alphabetic!")
+    ///                     .const_over(|c| c.is_uppercase(), "case changed!");
     ///
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid('1'))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement('1', Rc::from("not alphabetic!")))));
     /// assert_eq!(iter.next(), Some(Ok('A')));
     /// assert_eq!(iter.next(), Some(Ok('B')));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::Invalid('2'))));
-    /// assert_eq!(iter.next(), Some(Err(ValidErr::BrokenConstant('c'))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement('2', Rc::from("not alphabetic!")))));
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::WithElement('c', Rc::from("case changed!")))));
     /// ```
     ///
     /// [`Err(ValidErr::BrokenConstant(element))`](crate::valid_result::ValidErr)
