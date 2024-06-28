@@ -109,10 +109,7 @@ impl<OkType, ErrType, I> ErrCastable<OkType, ErrType> for I where
 mod tests {
     use std::rc::Rc;
 
-    use crate::{
-        valid_iter::{Unvalidatable, ValidIter},
-        valid_result::ValidErr,
-    };
+    use crate::{Unvalidatable, ValidIter, valid_result::ValidErr};
 
     use super::ErrCastable;
 

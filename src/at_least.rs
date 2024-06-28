@@ -65,7 +65,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::valid_iter::{Unvalidatable, ValidIter};
+    use crate::{Unvalidatable, ValidIter};
 
     #[test]
     fn test_at_least_on_failure() {

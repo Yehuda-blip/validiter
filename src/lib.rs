@@ -10,17 +10,15 @@ mod valid_result;
 mod validatable;
 
 pub use cast_errs::ErrCastable;
-pub use valid_iter::{Unvalidatable, ValidIter};
+pub use valid_iter::ValidIter;
+pub use validatable::Unvalidatable;
 pub use valid_result::{VResult, ValidErr};
 
 #[cfg(test)]
 mod tests {
     use std::rc::Rc;
 
-    use crate::{
-        valid_iter::{Unvalidatable, ValidIter},
-        valid_result::{VResult, ValidErr},
-    };
+    use crate::{Unvalidatable, ValidIter, VResult, ValidErr};
 
     #[test]
     fn test_multi_validation_on_iterator() {

@@ -68,10 +68,7 @@ where
 mod tests {
     use std::rc::Rc;
 
-    use crate::{
-        valid_iter::{Unvalidatable, ValidIter},
-        valid_result::{VResult, ValidErr},
-    };
+    use crate::{Unvalidatable, ValidIter, VResult, ValidErr};
 
     #[test]
     fn test_between() {

@@ -74,10 +74,7 @@ where
 mod tests {
     use std::{iter::repeat, rc::Rc};
 
-    use crate::{
-        valid_iter::{Unvalidatable, ValidIter},
-        valid_result::ValidErr,
-    };
+    use crate::{Unvalidatable, ValidIter, ValidErr};
 
     #[test]
     fn test_const_over_ok() {
