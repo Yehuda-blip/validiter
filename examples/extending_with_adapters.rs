@@ -43,7 +43,7 @@ impl<T: ValidIter> MyValidIter for T {}
 fn main() {
     (0..10)
         .validate()
-        .ensure(|i| i % 2 == 0, "ensure even")
+        .ensure(|i| i % 2 == 0, "ensure even").at_most(10, "at most 10")
         .fail_always()
         .for_each(|i| println!("{i:?}"))
 }
