@@ -17,7 +17,7 @@ where
     value_store: [A; N],
     extractor: M,
     validation: F,
-    desc: Rc<str>
+    desc: Rc<str>,
 }
 
 impl<I, A, M, F, const N: usize> LookBack<I, A, M, F, N>
@@ -35,7 +35,7 @@ where
             value_store: [(); N].map(|_| A::default()),
             extractor,
             validation,
-            desc: Rc::from(desc)
+            desc: Rc::from(desc),
         }
     }
 }
@@ -251,6 +251,27 @@ mod tests {
                 Err(ValidErr::WithElement(&1, Rc::from("lb"))),
                 Ok(&0),
                 Ok(&1),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_lookback_ignores_errors() {
+        let results = (0..=5)
+            .validate()
+            .ensure(|i| *i != 0 && *i != 3, "ensure")
+            .look_back(|i| i % 2, |parity, j| j % 2 != *parity, "look-back")
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            results,
+            vec![
+                Err(ValidErr::WithElement(0, Rc::from("ensure"))),
+                Ok(1),
+                Ok(2),
+                Err(ValidErr::WithElement(3, Rc::from("ensure"))),
+                Err(ValidErr::WithElement(4, Rc::from("look-back"))),
+                Ok(5)
             ]
         )
     }

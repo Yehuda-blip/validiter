@@ -15,7 +15,7 @@ where
     iter: I,
     stored_value: Option<A>,
     extractor: M,
-    desc: Rc<str>
+    desc: Rc<str>,
 }
 
 impl<I, A, M> ConstOver<I, A, M>
@@ -29,7 +29,7 @@ where
             iter,
             stored_value: None,
             extractor,
-            desc: Rc::from(desc)
+            desc: Rc::from(desc),
         }
     }
 }
@@ -98,17 +98,30 @@ mod tests {
             .collect();
         assert_eq!(
             results,
-            [Ok(0), Ok(0), Ok(0), Err(ValidErr::WithElement(1, Rc::from("co")))]
+            [
+                Ok(0),
+                Ok(0),
+                Ok(0),
+                Err(ValidErr::WithElement(1, Rc::from("co")))
+            ]
         )
     }
 
     #[test]
     fn test_const_over_bounds() {
-        if (0..0).validate().const_over(|i| *i, "co").any(|res| res.is_err()) {
+        if (0..0)
+            .validate()
+            .const_over(|i| *i, "co")
+            .any(|res| res.is_err())
+        {
             panic!("const over failed on empty iter")
         }
 
-        if (0..1).validate().const_over(|i| *i, "co").any(|res| res.is_err()) {
+        if (0..1)
+            .validate()
+            .const_over(|i| *i, "co")
+            .any(|res| res.is_err())
+        {
             panic!("const over failed on count == 1 iter")
         }
     }
@@ -129,6 +142,26 @@ mod tests {
                 Err(ValidErr::WithElement([1], Rc::from("co"))),
                 Ok([0]),
                 Err(ValidErr::WithElement([2], Rc::from("co")))
+            ]
+        )
+    }
+
+    #[test]
+    fn test_const_over_ignores_errors() {
+        let results = (0..=4)
+            .validate()
+            .ensure(|i| *i != 0 && *i != 2, "ensure")
+            .const_over(|i| i % 2, "const-over")
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            results,
+            vec![
+                Err(ValidErr::WithElement(0, Rc::from("ensure"))),
+                Ok(1),
+                Err(ValidErr::WithElement(2, Rc::from("ensure"))),
+                Ok(3),
+                Err(ValidErr::WithElement(4, Rc::from("const-over")))
             ]
         )
     }

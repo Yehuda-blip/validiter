@@ -84,7 +84,10 @@ mod tests {
             .validate()
             .at_most(9, "test")
             .collect::<Result<Vec<_>, _>>();
-        assert!(matches!(failed_collection, Err(ValidErr::WithElement(_, _))));
+        assert!(matches!(
+            failed_collection,
+            Err(ValidErr::WithElement(_, _))
+        ));
 
         let collection = (0..10)
             .validate()
@@ -130,5 +133,24 @@ mod tests {
                 true => assert!(matches!(res_i, Ok(_))),
                 false => assert!(matches!(res_i, Err(ValidErr::WithElement(_, _)))),
             })
+    }
+
+    #[test]
+    fn test_at_most_counting_validator_correctly_skips_errors() {
+        let results = (0..5)
+            .validate()
+            .ensure(|i| i % 2 == 0, "ensure")
+            .at_most(2, "at-most")
+            .collect::<Vec<_>>();
+        assert_eq!(
+            results,
+            vec![
+                Ok(0),
+                Err(ValidErr::WithElement(1, Rc::from("ensure"))),
+                Ok(2),
+                Err(ValidErr::WithElement(3, Rc::from("ensure"))),
+                Err(ValidErr::WithElement(4, Rc::from("at-most")))
+            ]
+        )
     }
 }

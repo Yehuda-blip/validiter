@@ -57,6 +57,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::{
         valid_iter::{Unvalidatable, ValidIter},
         valid_result::ValidErr,
@@ -74,5 +76,15 @@ mod tests {
                     if i % 2 == 1 && i as i32 == int && msg.as_ref() == "ensure" => {}
                 _ => panic!("unexpected value in ensure adapter"),
             })
+    }
+
+    #[test]
+    fn test_ensure_ignores_errors() {
+        let v = (0..=0)
+            .validate()
+            .ensure(|i| *i != 0, "A")
+            .ensure(|i| *i != 0, "B")
+            .next();
+        assert_eq!(v, Some(Err(ValidErr::WithElement(0, Rc::from("A")))))
     }
 }

@@ -13,7 +13,7 @@ where
     iter: I,
     lower_bound: I::BaseType,
     upper_bound: I::BaseType,
-    desc: Rc<str>
+    desc: Rc<str>,
 }
 
 impl<I> Between<I>
@@ -21,12 +21,17 @@ where
     I: Sized + ValidIter + Iterator<Item = VResult<I::BaseType>>,
     I::BaseType: PartialOrd,
 {
-    pub(crate) fn new(iter: I, lower_bound: I::BaseType, upper_bound: I::BaseType, desc: &str) -> Between<I> {
+    pub(crate) fn new(
+        iter: I,
+        lower_bound: I::BaseType,
+        upper_bound: I::BaseType,
+        desc: &str,
+    ) -> Between<I> {
         Between {
             iter,
             lower_bound,
             upper_bound,
-            desc: Rc::from(desc)
+            desc: Rc::from(desc),
         }
     }
 }
@@ -125,6 +130,19 @@ mod tests {
                 Ok(1),
                 Err(ValidErr::WithElement(2, Rc::from("oob")))
             ]
+        )
+    }
+
+    #[test]
+    fn test_between_igonres_errors() {
+        let results = (1..=1)
+            .validate()
+            .ensure(|i| i == &0, "ensure")
+            .between(0, 0, "between")
+            .collect::<Vec<_>>();
+        assert_eq!(
+            results,
+            vec![Err(ValidErr::WithElement(1, Rc::from("ensure")))]
         )
     }
 }

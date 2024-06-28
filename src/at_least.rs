@@ -185,4 +185,20 @@ mod tests {
                 }
             })
     }
+
+    #[test]
+    fn test_at_least_counting_iterator_correctly_skips_errors() {
+        let results = (0..1)
+            .validate()
+            .ensure(|i| i % 2 == 1, "ensure")
+            .at_least(1, "at-least")
+            .collect::<Vec<_>>();
+        assert_eq!(
+            results,
+            vec![
+                Err(ValidErr::WithElement(0, Rc::from("ensure"))),
+                Err(ValidErr::Description(Rc::from("at-least")))
+            ]
+        )
+    }
 }
