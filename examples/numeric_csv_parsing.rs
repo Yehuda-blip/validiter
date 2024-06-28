@@ -30,7 +30,7 @@ fn main() {
                         .map_err(|e| ValidErr::<f64>::Description(Rc::from(format!("{e}"))))
                 })
                 // the iterator is over VResult<f64>, but map is not a ValidIter!
-                // ecause 'Map' is not a 'ValidIter', we need to convert the underlying data structure type
+                // because 'Map' is not a 'ValidIter', we need to convert the underlying data structure type
                 .cast_errs() 
                 // force non-empty rows
                 .at_least(1, "no columns!")
