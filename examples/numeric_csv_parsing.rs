@@ -1,48 +1,52 @@
-// use validiter::{ErrLiftable, ValidErr, ValidIter};
+use std::rc::Rc;
 
-// fn main() {
-//     // In this example we will use the 'lift_errs' method to
-//     // create a 'Vec<Vec<f64>>' collection, while ensuring 
-//     // the mathematical validity if this collection as a numerical
-//     // matrix. We will also force the matrix to be non-negative,
-//     // just for funsies.
+use validiter::{ErrCastable, ValidErr, ValidIter};
 
-//     // this is a CSV format str, with 2 rows and 2 columns
-//     let csv = "1.2, 3.0
-//                 4.2, 0.5";
+fn main() {
+    // In this example we will use the 'cast_errs' method to
+    // create a 'Vec<Vec<f64>>' collection, while ensuring
+    // the mathematical validity if this collection as a numerical
+    // matrix. We will also force the matrix to be non-negative,
+    // just for funsies.
 
-//     // we'll use iterator methods on the CSV to build an actual 
-//     // split the csv by rows/lines
-//     let mat = csv        .lines()
-//         // convert each row to a matrix row
-//         .map(
-//             |line| {
-//                 // split by elements
-//                 line.split(",")
-//                     // map the elements to f64 values
-//                     .map(|s| s.trim())
-//                     // if we get a parse error, we want to map it to our own error types - ValidErr<f64>
-//                     .map(|s| s.parse::<f64>().map_err(|_| ValidErr::<f64>::Mapped))
-//                     // because 'Map' is not a 'ValidIter', we need to convert the underlying data structure type
-//                     .lift_errs() // the iterator is over VResult<f64>, but map is not a ValidIter!
-//                     // force non-empty rows
-//                     .at_least(1)
-//                     // simple 'greater than 0' validation
-//                     .ensure(|f| *f >= 0.0)
-//                     // collecting each row to a vector, but now Ok Type is a vector, but Err Type is f64!
-//                     .collect::<Result<Vec<f64>, ValidErr<f64>>>()
-//             },
-//         )
-//         // we use lift_errs again to fix the typing issues
-//         .lift_errs()
-//         // force non-empty matrix
-//         .at_least(1)
-//         // force equal-sized rows
-//         .const_over(|vec| vec.len())
-//         // collect into a matrix
-//         .collect::<Result<Vec<_>, _>>();
-//     assert_eq!(mat, Ok(vec![vec![1.2, 3.0], vec![4.2, 0.5]]));
-//     print!("{:?}", mat)
-// }
+    // this is a CSV format str, with 2 rows and 2 columns
+    let csv = "1.2, 3.0
+                4.2, 0.5";
 
-fn main(){}
+    // we'll use iterator methods on the CSV to build an actual
+    // split the csv by rows/lines
+    let mat = csv
+        .lines()
+        // convert each row to a matrix row
+        .map(|line| {
+            // split by elements
+            line.split(",")
+                // trim whitespace
+                .map(|s| s.trim())
+                .map(|s| {
+                    // map to f64
+                    s.parse::<f64>()
+                        // if we get a parse error, we want to map it to our own error types - ValidErr<f64>
+                        .map_err(|e| ValidErr::<f64>::Description(Rc::from(format!("{e}"))))
+                })
+                // the iterator is over VResult<f64>, but map is not a ValidIter!
+                // ecause 'Map' is not a 'ValidIter', we need to convert the underlying data structure type
+                .cast_errs() 
+                // force non-empty rows
+                .at_least(1, "no columns!")
+                // simple 'greater than 0' validation
+                .ensure(|f| *f >= 0.0, "negative!")
+                // collecting each row to a vector, but now Ok Type is a vector, and Err Type is f64!
+                .collect::<Result<Vec<f64>, ValidErr<f64>>>()
+        })
+        // we use cast_errs again to fix the typing issues
+        .cast_errs()
+        // force non-empty matrix
+        .at_least(1, "no rows!")
+        // force equal-sized rows
+        .const_over(|vec| vec.len(), "row size changed!")
+        // collect into a matrix
+        .collect::<Result<Vec<_>, _>>();
+    assert_eq!(mat, Ok(vec![vec![1.2, 3.0], vec![4.2, 0.5]]));
+    print!("{:?}", mat)
+}
