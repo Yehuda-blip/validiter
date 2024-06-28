@@ -1,24 +1,27 @@
-mod at_least;
-mod at_most;
-mod between;
+mod validation_adapters {
+    pub(crate) mod at_least;
+    pub(crate) mod at_most;
+    pub(crate) mod between;
+    pub(crate) mod const_over;
+    pub(crate) mod ensure;
+    pub(crate) mod look_back;
+}
+
 mod cast_errs;
-mod const_over;
-mod ensure;
-mod look_back;
 mod valid_iter;
 mod valid_result;
 mod validatable;
 
 pub use cast_errs::ErrCastable;
 pub use valid_iter::ValidIter;
-pub use validatable::Unvalidatable;
 pub use valid_result::{VResult, ValidErr};
+pub use validatable::Unvalidatable;
 
 #[cfg(test)]
 mod tests {
     use std::rc::Rc;
 
-    use crate::{Unvalidatable, ValidIter, VResult, ValidErr};
+    use crate::{Unvalidatable, VResult, ValidErr, ValidIter};
 
     #[test]
     fn test_multi_validation_on_iterator() {

@@ -1,8 +1,6 @@
 use std::rc::Rc;
 
-use crate::{valid_iter::ValidIter, valid_result::ValidErr};
-
-use super::valid_result::VResult;
+use crate::{ValidIter, ValidErr, VResult};
 
 
 /// The [`Atleast`] ValidIter adapter, for more info see [`at_least`](crate::ValidIter::at_least).

@@ -1,8 +1,6 @@
 use std::rc::Rc;
 
-use crate::{valid_iter::ValidIter, valid_result::ValidErr};
-
-use super::valid_result::VResult;
+use crate::{valid_iter::ValidIter, valid_result::ValidErr, VResult};
 
 /// The [`Ensure`] ValidIter adapter, for more info see [`ensure`](crate::ValidIter::ensure).
 #[derive(Debug, Clone)]

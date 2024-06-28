@@ -1,8 +1,6 @@
 use std::rc::Rc;
 
-use crate::{valid_iter::ValidIter, valid_result::ValidErr};
-
-use super::valid_result::VResult;
+use crate::{ValidIter, ValidErr, VResult};
 
 
 /// The [`Between`] ValidIter adapter, for more info see [`between`](crate::ValidIter::between).

@@ -1,9 +1,10 @@
 use crate::{
-    at_least::AtLeast, between::Between, const_over::ConstOver, ensure::Ensure,
-    look_back::LookBack, valid_result::VResult,
+    valid_result::VResult,
+    validation_adapters::{
+        at_least::AtLeast, at_most::AtMost, between::Between, const_over::ConstOver,
+        ensure::Ensure, look_back::LookBack,
+    },
 };
-
-use super::at_most::AtMost;
 
 /// The trait defining a validatable iterator. While it is not sealed,
 /// you should probably not implement it unless you're feeling experimental.
@@ -47,7 +48,7 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///         .validate()
     ///         .at_most(10, "not a lot")
     ///         .collect::<Result<_, _>>();
-    /// 
+    ///
     ///     assert_eq!(collection_result, Err(ValidErr::WithElement(10, Rc::from("not a lot"))));   
     /// ```
     ///

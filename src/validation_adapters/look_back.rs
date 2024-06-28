@@ -1,8 +1,6 @@
 use std::rc::Rc;
 
-use crate::{valid_iter::ValidIter, valid_result::ValidErr};
-
-use super::valid_result::VResult;
+use crate::{ValidIter, ValidErr, VResult};
 
 /// The [`LookBack`] ValidIter adapter, for more info see
 ///  [`look_back`](crate::ValidIter::look_back) and [`look_back_n`](crate::ValidIter::look_back_n).
