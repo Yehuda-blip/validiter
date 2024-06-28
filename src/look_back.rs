@@ -29,7 +29,7 @@ where
     M: Fn(&I::BaseType) -> A,
     F: Fn(&A, &I::BaseType) -> bool,
 {
-    pub fn new(iter: I, extractor: M, validation: F, desc: &str) -> LookBack<I, A, M, F, N> {
+    pub(crate) fn new(iter: I, extractor: M, validation: F, desc: &str) -> LookBack<I, A, M, F, N> {
         Self {
             iter,
             pos: 0,
