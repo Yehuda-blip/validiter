@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
@@ -15,6 +17,7 @@ where
     value_store: [A; N],
     extractor: M,
     validation: F,
+    desc: Rc<str>
 }
 
 impl<I, A, M, F, const N: usize> LookBack<I, A, M, F, N>
@@ -24,7 +27,7 @@ where
     M: Fn(&I::BaseType) -> A,
     F: Fn(&A, &I::BaseType) -> bool,
 {
-    pub fn new(iter: I, extractor: M, validation: F) -> LookBack<I, A, M, F, N> {
+    pub fn new(iter: I, extractor: M, validation: F, desc: &str) -> LookBack<I, A, M, F, N> {
         Self {
             iter,
             pos: 0,
@@ -32,6 +35,7 @@ where
             value_store: [(); N].map(|_| A::default()),
             extractor,
             validation,
+            desc: Rc::from(desc)
         }
     }
 }
@@ -69,7 +73,7 @@ where
                             self.pos += 1;
                             Some(Ok(val))
                         }
-                        false => Some(Err(ValidErr::LookBackFailed(val))),
+                        false => Some(Err(ValidErr::WithElement(val, Rc::clone(&self.desc)))),
                     }
                 } else {
                     self.value_store[self.pos] = (self.extractor)(&val);
@@ -94,6 +98,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::{
         valid_iter::{Unvalidatable, ValidIter},
         valid_result::{VResult, ValidErr},
@@ -103,7 +109,7 @@ mod tests {
     fn test_lookback_ok() {
         if (0..10)
             .validate()
-            .look_back_n::<3, _, _, _>(|i| *i, |prev, i| prev < i)
+            .look_back_n::<3, _, _, _>(|i| *i, |prev, i| prev < i, "lb")
             .any(|res| res.is_err())
         {
             panic!("look back failed on ok iteration")
@@ -116,7 +122,7 @@ mod tests {
             .chain(2..=2)
             .chain(0..6)
             .validate()
-            .look_back_n::<3, _, _, _>(|i| *i, |prev, i| prev < i)
+            .look_back_n::<3, _, _, _>(|i| *i, |prev, i| prev < i, "lb")
             .collect();
 
         assert_eq!(
@@ -125,10 +131,10 @@ mod tests {
                 Ok(2),
                 Ok(3),
                 Ok(4),
-                Err(ValidErr::LookBackFailed(2)),
-                Err(ValidErr::LookBackFailed(0)),
-                Err(ValidErr::LookBackFailed(1)),
-                Err(ValidErr::LookBackFailed(2)),
+                Err(ValidErr::WithElement(2, Rc::from("lb"))),
+                Err(ValidErr::WithElement(0, Rc::from("lb"))),
+                Err(ValidErr::WithElement(1, Rc::from("lb"))),
+                Err(ValidErr::WithElement(2, Rc::from("lb"))),
                 Ok(3),
                 Ok(4),
                 Ok(5),
@@ -141,7 +147,7 @@ mod tests {
         if (0..5)
             .chain(0..5)
             .validate()
-            .look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev < i)
+            .look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev < i, "lb")
             .any(|res| res.is_err())
         {
             panic!("look back failed when it should not be validating anything")
@@ -153,7 +159,7 @@ mod tests {
         if (0..5)
             .chain(0..=0)
             .validate()
-            .look_back_n::<7, _, _, _>(|i| *i, |prev, i| prev < i)
+            .look_back_n::<7, _, _, _>(|i| *i, |prev, i| prev < i, "lb")
             .any(|res| res.is_err())
         {
             panic!("look back failed when lookback is out of bounds")
@@ -164,7 +170,7 @@ mod tests {
     fn test_lookback_bounds() {
         if (0..5)
             .validate()
-            .look_back_n::<5, _, _, _>(|i| *i, |prev, i| prev == i)
+            .look_back_n::<5, _, _, _>(|i| *i, |prev, i| prev == i, "lb")
             .any(|res| res.is_err())
         {
             panic!("failed on too early look back")
@@ -172,7 +178,7 @@ mod tests {
 
         if !(0..5)
             .validate()
-            .look_back_n::<4, _, _, _>(|i| *i, |prev, i| prev == i)
+            .look_back_n::<4, _, _, _>(|i| *i, |prev, i| prev == i, "lb")
             .any(|res| res.is_err())
         {
             panic!("did not fail on count-1 look back")
@@ -180,7 +186,7 @@ mod tests {
 
         if (0..=0)
             .validate()
-            .look_back_n::<1, _, _, _>(|i| *i, |prev, i| prev == i)
+            .look_back_n::<1, _, _, _>(|i| *i, |prev, i| prev == i, "lb")
             .any(|res| res.is_err())
         {
             panic!("failed on look back when count is 1")
@@ -188,7 +194,7 @@ mod tests {
 
         if (0..0)
             .validate()
-            .look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev == i)
+            .look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev == i, "lb")
             .any(|res| res.is_err())
         {
             panic!("failed on look back when count is 0")
@@ -199,7 +205,7 @@ mod tests {
     fn test_default_lookback_is_1() {
         if (0..4)
             .validate()
-            .look_back(|i| *i, |prev, i| i - 1 == *prev)
+            .look_back(|i| *i, |prev, i| i - 1 == *prev, "lb")
             .any(|res| res.is_err())
         {
             panic!("should be incrementing iteration, approved by look back")
@@ -211,15 +217,15 @@ mod tests {
         let results: Vec<VResult<_>> = [0, 0, 1, 2, 0]
             .iter()
             .validate()
-            .look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i == prev)
+            .look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i == prev, "lb")
             .collect();
         assert_eq!(
             results,
             [
                 Ok(&0),
                 Ok(&0),
-                Err(ValidErr::LookBackFailed(&1)),
-                Err(ValidErr::LookBackFailed(&2)),
+                Err(ValidErr::WithElement(&1, Rc::from("lb"))),
+                Err(ValidErr::WithElement(&2, Rc::from("lb"))),
                 Ok(&0)
             ]
         )
@@ -230,7 +236,7 @@ mod tests {
         let results: Vec<VResult<_>> = [0, 1, 0, 1, 1, 0, 1, 1, 0, 1]
             .iter()
             .validate()
-            .look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i % 2 == prev % 2)
+            .look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i % 2 == prev % 2, "lb")
             .collect();
         assert_eq!(
             results,
@@ -239,10 +245,10 @@ mod tests {
                 Ok(&1),
                 Ok(&0),
                 Ok(&1),
-                Err(ValidErr::LookBackFailed(&1)),
+                Err(ValidErr::WithElement(&1, Rc::from("lb"))),
                 Ok(&0),
                 Ok(&1),
-                Err(ValidErr::LookBackFailed(&1)),
+                Err(ValidErr::WithElement(&1, Rc::from("lb"))),
                 Ok(&0),
                 Ok(&1),
             ]

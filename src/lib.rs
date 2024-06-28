@@ -15,6 +15,8 @@ pub use valid_result::{VResult, ValidErr};
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::{
         valid_iter::{Unvalidatable, ValidIter},
         valid_result::{VResult, ValidErr},
@@ -27,39 +29,39 @@ mod tests {
             .chain(-1..=-1)
             .chain(1..=1)
             .validate()
-            .const_over(|i| *i >= 0)
-            .look_back_n::<10, _, _, _>(|i| *i, |prev, curr| prev == curr)
-            .at_most(7)
-            .between(2, 8)
-            .ensure(|i| i % 2 == 0)
-            .at_least(4)
+            .const_over(|i| *i >= 0, "co")
+            .look_back_n::<10, _, _, _>(|i| *i, |prev, curr| prev == curr, "lb")
+            .at_most(7, "am")
+            .between(2, 8, "b")
+            .ensure(|i| i % 2 == 0, "e")
+            .at_least(4, "al")
             .collect::<Vec<VResult<_>>>();
         assert_eq!(
             validation_results,
             [
-                Err(ValidErr::OutOfBounds(0)),
-                Err(ValidErr::OutOfBounds(1)),
+                Err(ValidErr::WithElement(0, Rc::from("b"))),
+                Err(ValidErr::WithElement(1, Rc::from("b"))),
                 Ok(2),
-                Err(ValidErr::Invalid(3)),
+                Err(ValidErr::WithElement(3, Rc::from("e"))),
                 Ok(4),
-                Err(ValidErr::Invalid(5)),
+                Err(ValidErr::WithElement(5, Rc::from("e"))),
                 Ok(6),
-                Err(ValidErr::TooMany(7)),
-                Err(ValidErr::TooMany(8)),
-                Err(ValidErr::TooMany(9)),
-                Err(ValidErr::TooMany(0)),
-                Err(ValidErr::TooMany(1)),
-                Err(ValidErr::TooMany(2)),
-                Err(ValidErr::TooMany(3)),
-                Err(ValidErr::TooMany(4)),
-                Err(ValidErr::TooMany(5)),
-                Err(ValidErr::TooMany(6)),
-                Err(ValidErr::TooMany(7)),
-                Err(ValidErr::TooMany(8)),
-                Err(ValidErr::TooMany(9)),
-                Err(ValidErr::BrokenConstant(-1)),
-                Err(ValidErr::LookBackFailed(1)),
-                Err(ValidErr::TooFew),
+                Err(ValidErr::WithElement(7, Rc::from("am"))),
+                Err(ValidErr::WithElement(8, Rc::from("am"))),
+                Err(ValidErr::WithElement(9, Rc::from("am"))),
+                Err(ValidErr::WithElement(0, Rc::from("am"))),
+                Err(ValidErr::WithElement(1, Rc::from("am"))),
+                Err(ValidErr::WithElement(2, Rc::from("am"))),
+                Err(ValidErr::WithElement(3, Rc::from("am"))),
+                Err(ValidErr::WithElement(4, Rc::from("am"))),
+                Err(ValidErr::WithElement(5, Rc::from("am"))),
+                Err(ValidErr::WithElement(6, Rc::from("am"))),
+                Err(ValidErr::WithElement(7, Rc::from("am"))),
+                Err(ValidErr::WithElement(8, Rc::from("am"))),
+                Err(ValidErr::WithElement(9, Rc::from("am"))),
+                Err(ValidErr::WithElement(-1, Rc::from("co"))),
+                Err(ValidErr::WithElement(1, Rc::from("lb"))),
+                Err(ValidErr::Description(Rc::from("al"))),
             ]
         )
     }

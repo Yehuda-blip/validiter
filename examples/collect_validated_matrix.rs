@@ -1,53 +1,64 @@
-use validiter::{ErrLiftable, Unvalidatable, ValidErr, ValidIter};
+use std::rc::Rc;
 
 fn main() {
-    let ok_s = "abcd
-abcd
-abcd
-abcd";
-    println!("good matrix");
-    match s_to_mat(ok_s) {
-        Ok(mat) => println!("{:?}", mat),
-        Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
-    }
-
-    let empty_s = "";
-    println!("empty matrix");
-    match s_to_mat(empty_s) {
-        Ok(mat) => println!("{:?}", mat),
-        Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
-    }
-
-    let empty_lines_s = "
-
-";
-    println!("empty lines matrix");
-    match s_to_mat(empty_lines_s) {
-        Ok(mat) => println!("{:?}", mat),
-        Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
-    }
-
-    let different_length_lines_s = "abcd
-abcd
-abc
-abcd";
-    println!("different length rows matrix");
-    match s_to_mat(different_length_lines_s) {
-        Ok(mat) => println!("{:?}", mat),
-        Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
+    let s =  Rc::from("sdf");
+    match *s {
+        "sdf" => {print!("success {s}")},
+        _ => panic!("fasdfas")
     }
 }
 
-fn s_to_mat(s: &str) -> Result<Vec<Vec<char>>, ValidErr<Vec<char>>> {
-    s.lines()
-        .map(|line| {
-            line.chars()
-                .validate()
-                .at_least(1)
-                .collect::<Result<Vec<char>, _>>()
-        })
-        .lift_errs()
-        .at_least(1)
-        .const_over(|vec| vec.len())
-        .collect::<Result<Vec<Vec<char>>, _>>()
-}
+
+// use validiter::{ErrLiftable, Unvalidatable, ValidErr, ValidIter};
+
+// fn main() {
+//     let ok_s = "abcd
+// abcd
+// abcd
+// abcd";
+//     println!("good matrix");
+//     match s_to_mat(ok_s) {
+//         Ok(mat) => println!("{:?}", mat),
+//         Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
+//     }
+
+//     let empty_s = "";
+//     println!("empty matrix");
+//     match s_to_mat(empty_s) {
+//         Ok(mat) => println!("{:?}", mat),
+//         Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
+//     }
+
+//     let empty_lines_s = "
+
+// ";
+//     println!("empty lines matrix");
+//     match s_to_mat(empty_lines_s) {
+//         Ok(mat) => println!("{:?}", mat),
+//         Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
+//     }
+
+//     let different_length_lines_s = "abcd
+// abcd
+// abc
+// abcd";
+//     println!("different length rows matrix");
+//     match s_to_mat(different_length_lines_s) {
+//         Ok(mat) => println!("{:?}", mat),
+//         Err(err) => println!("bad input string, could not build matrix - err: {:?}", err),
+//     }
+// }
+
+// fn s_to_mat(s: &str) -> Result<Vec<Vec<char>>, ValidErr<Vec<char>>> {
+//     s.lines()
+//         .map(|line| {
+//             line.chars()
+//                 .validate()
+//                 .at_least(1)
+//                 .collect::<Result<Vec<char>, _>>()
+//         })
+//         .lift_errs()
+//         .at_least(1)
+//         .const_over(|vec| vec.len())
+//         .collect::<Result<Vec<Vec<char>>, _>>()
+// }

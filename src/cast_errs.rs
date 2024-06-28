@@ -25,7 +25,8 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(Err(_err_type)) => Some(Err(ValidErr::Casted)),
+            Some(Err(ValidErr::Description(desc))) => Some(Err(ValidErr::Description(desc))),
+            Some(Err(ValidErr::WithElement(_, desc))) => Some(Err(ValidErr::Description(desc))),
             Some(Ok(ok_type)) => Some(Ok(ok_type)),
             None => None,
         }
@@ -104,6 +105,8 @@ impl<OkType, ErrType, I> ErrCastable<OkType, ErrType> for I where
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::{
         valid_iter::{Unvalidatable, ValidIter},
         valid_result::ValidErr,
@@ -118,28 +121,28 @@ mod tests {
     abcd";
 
     #[test]
-    fn test_lift_allows_collection_of_validation_errors() {
+    fn test_cast_allows_collection_of_validation_errors() {
         let error = TEST_STR
             .split_whitespace()
             .map(|line| {
                 line.chars()
                     .validate()
-                    .ensure(|c| c.is_lowercase())
+                    .ensure(|c| c.is_lowercase(), "inner-ensure")
                     .collect::<Result<Vec<char>, _>>()
             })
             .cast_errs()
             .collect::<Result<Vec<Vec<char>>, _>>();
-        assert_eq!(error, Err(ValidErr::Casted));
+        assert_eq!(error, Err(ValidErr::Description(Rc::from("inner-ensure"))));
     }
 
     #[test]
-    fn test_lift_after_error_handling_on_inner_level_allows_collecting_ok() {
+    fn test_cast_after_error_handling_on_inner_level_allows_collecting_ok() {
         let ok = TEST_STR
             .split_whitespace()
             .map(|line| {
                 line.chars()
                     .validate()
-                    .ensure(|c| c.is_lowercase())
+                    .ensure(|c| c.is_lowercase(), "inner-ensure")
                     .filter(|vec| vec.is_ok())
                     .collect::<Result<Vec<char>, _>>()
             })
@@ -157,13 +160,13 @@ mod tests {
     }
 
     #[test]
-    fn test_lift_after_error_handling_on_outer_level_allows_collecting_ok() {
+    fn test_cast_after_error_handling_on_outer_level_allows_collecting_ok() {
         let ok = TEST_STR
             .split_whitespace()
             .map(|line| {
                 line.chars()
                     .validate()
-                    .ensure(|c| c.is_lowercase())
+                    .ensure(|c| c.is_lowercase(), "inner-ensure")
                     .collect::<Result<Vec<char>, _>>()
             })
             .cast_errs()

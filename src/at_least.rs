@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
@@ -10,17 +12,19 @@ where
     iter: I,
     min_count: usize,
     counter: usize,
+    desc: Rc<str>,
 }
 
 impl<I> AtLeast<I>
 where
     I: Sized + ValidIter + Iterator<Item = VResult<I::BaseType>>,
 {
-    pub(crate) fn new(iter: I, min_count: usize) -> AtLeast<I> {
+    pub(crate) fn new(iter: I, min_count: usize, desc: &str) -> AtLeast<I> {
         AtLeast {
             iter,
             min_count,
             counter: 0,
+            desc: Rc::from(desc),
         }
     }
 }
@@ -41,7 +45,7 @@ where
                 true => None,
                 false => {
                     self.counter = self.min_count;
-                    Some(Err(ValidErr::TooFew))
+                    Some(Err(ValidErr::Description(Rc::clone(&self.desc))))
                 }
             },
             other => other,
@@ -63,24 +67,26 @@ mod tests {
 
     #[test]
     fn test_at_least_on_failure() {
-        assert_eq!((0..10).validate().at_least(100).count(), 11);
+        assert_eq!((0..10).validate().at_least(100, "test").count(), 11);
         (0..10)
             .validate()
-            .at_least(100)
+            .at_least(100, "test")
             .enumerate()
             .for_each(|(i, res_i)| match res_i {
                 Ok(_) if i < 10 => {}
-                Err(ValidErr::TooFew) if i == 10 => {}
+                Err(ValidErr::Description(msg)) if i == 10 => {
+                    assert_eq!(msg, Rc::from("test"))
+                }
                 _ => panic!("unexpected value in at least adapter"),
             })
     }
 
     #[test]
     fn test_at_least_on_success() {
-        assert_eq!((0..10).validate().at_least(5).count(), 10);
+        assert_eq!((0..10).validate().at_least(5, "test").count(), 10);
         (0..10)
             .validate()
-            .at_least(5)
+            .at_least(5, "test")
             .for_each(|res_i| match res_i {
                 Ok(_) => {}
                 _ => panic!("unexpected error in at least adapter"),
@@ -91,11 +97,14 @@ mod tests {
     fn test_at_least_successful_bounds() {
         let tightly_bound_success = (0..10)
             .validate()
-            .at_least(10)
+            .at_least(10, "test")
             .collect::<Result<Vec<_>, _>>();
         assert!(matches!(tightly_bound_success, Ok(_)));
 
-        let empty_success = (0..0).validate().at_least(0).collect::<Result<Vec<_>, _>>();
+        let empty_success = (0..0)
+            .validate()
+            .at_least(0, "test")
+            .collect::<Result<Vec<_>, _>>();
         assert!(matches!(empty_success, Ok(_)));
     }
 
@@ -103,23 +112,36 @@ mod tests {
     fn test_at_least_unsuccessful_bounds() {
         let tightly_bound_failure = (0..10)
             .validate()
-            .at_least(11)
+            .at_least(11, "test")
             .collect::<Result<Vec<_>, _>>();
-        assert!(matches!(tightly_bound_failure, Err(_)));
+        match tightly_bound_failure {
+            Ok(_) => panic!("collection should fail"),
+            Err(ValidErr::Description(msg)) => assert_eq!(msg, Rc::from("test")),
+            _ => panic!("bad variant"),
+        }
 
-        let empty_failure = (0..0).validate().at_least(1).collect::<Result<Vec<_>, _>>();
-        assert!(matches!(empty_failure, Err(_)));
+        let empty_failure = (0..0)
+            .validate()
+            .at_least(1, "test")
+            .collect::<Result<Vec<_>, _>>();
+        match empty_failure {
+            Ok(_) => panic!("collection should fail"),
+            Err(ValidErr::Description(msg)) => assert_eq!(msg, Rc::from("test")),
+            _ => panic!("bad variant"),
+        }
     }
 
     #[test]
     fn test_at_least_all_elements_are_present_and_in_order_on_failure() {
         (0..10)
             .validate()
-            .at_least(11)
+            .at_least(11, "test")
             .enumerate()
             .for_each(|(i, res_i)| match res_i {
                 Ok(int) if int == i as i32 && i < 10 => {}
-                Err(ValidErr::TooFew) if i == 10 => {}
+                Err(ValidErr::Description(msg)) if i == 10 => {
+                    assert_eq!(msg, Rc::from("test"))
+                }
                 _ => panic!("bad iteration after at least adapter failure"),
             })
     }
@@ -128,7 +150,7 @@ mod tests {
     fn test_at_least_all_elements_are_present_and_in_order_on_success() {
         (0..10)
             .validate()
-            .at_least(10)
+            .at_least(10, "test")
             .enumerate()
             .for_each(|(i, res_i)| match res_i {
                 Ok(int) if int == i as i32 && i < 10 => {}
@@ -140,7 +162,7 @@ mod tests {
     fn test_at_least_does_not_validate_on_short_circuiting_before_last_element() {
         (0..10)
             .validate()
-            .at_least(100)
+            .at_least(100, "test")
             .take(10)
             .for_each(|res_i| match res_i {
                 Ok(_) => {}
@@ -152,13 +174,13 @@ mod tests {
     fn test_at_least_validates_on_short_circuiting_after_last_element() {
         (0..10)
             .validate()
-            .at_least(100)
+            .at_least(100, "test")
             .take(11)
             .enumerate()
             .for_each(|(i, res_i)| {
                 match res_i {
                     Ok(_) if i < 10 => {},
-                    Err(ValidErr::TooFew) if i == 10 => {}
+                    Err(ValidErr::Description(msg)) if i == 10 => {assert_eq!(msg, Rc::from("test"))}
                     _ => panic!("did not fail the iteration in short circuit when last error element was not truncated")
                 }
             })

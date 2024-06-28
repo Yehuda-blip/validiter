@@ -8,7 +8,7 @@ use super::{at_most::AtMost, validatable::Validatable};
 /// The trait that allows sending iterators to the [`ValidIter`] type.
 /// While it is not sealed, you should probably not implement it
 /// unless you're feeling experimental.
-/// 
+///
 /// When you use this trait, all iterators have the method [`validate`](Unvalidatable::validate), and
 /// can turn to [`ValidIter`] iterators.
 ///
@@ -104,8 +104,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// [`Err(ValidErr::TooMany(element))`](crate::valid_result::ValidErr)
     ///
-    fn at_most(self, n: usize) -> AtMost<Self> {
-        AtMost::<Self>::new(self, n)
+    fn at_most(self, n: usize, description: &str) -> AtMost<Self> {
+        AtMost::<Self>::new(self, n, description)
     }
 
     /// Fails a validation iterator if it does not contain `n` or more elements.
@@ -164,8 +164,8 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::TooFew)`](crate::valid_result::ValidErr)
-    fn at_least(self, n: usize) -> AtLeast<Self> {
-        AtLeast::<Self>::new(self, n)
+    fn at_least(self, n: usize, description: &str) -> AtLeast<Self> {
+        AtLeast::<Self>::new(self, n, description)
     }
 
     /// Fails a validation iterator on [`PartialOrd`] elements if one the elements
@@ -213,11 +213,16 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::OutOfBounds(val))`](crate::valid_result::ValidErr)
-    fn between(self, lower_bound: Self::BaseType, upper_bound: Self::BaseType) -> Between<Self>
+    fn between(
+        self,
+        lower_bound: Self::BaseType,
+        upper_bound: Self::BaseType,
+        description: &str,
+    ) -> Between<Self>
     where
         Self::BaseType: PartialOrd,
     {
-        Between::<Self>::new(self, lower_bound, upper_bound)
+        Between::<Self>::new(self, lower_bound, upper_bound, description)
     }
 
     /// Applies a closure constraint too each element, and fails the
@@ -274,11 +279,11 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::Invalid(element))`](crate::valid_result::ValidErr)
-    fn ensure<F>(self, validation: F) -> Ensure<Self, F>
+    fn ensure<F>(self, validation: F, description: &str) -> Ensure<Self, F>
     where
         F: Fn(&Self::BaseType) -> bool,
     {
-        Ensure::<Self, F>::new(self, validation)
+        Ensure::<Self, F>::new(self, validation, description)
     }
 
     /// Tests each element in the iteration based on the previous element.
@@ -332,13 +337,18 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     ///
     /// [`look_back_n<1, _, _, _>::(extractor, validation)`](ValidIter::look_back_n)
     /// [`Err(ValidErr::LookBackFailed(element))`](crate::valid_result::ValidErr)
-    fn look_back<A, M, F>(self, extractor: M, validation: F) -> LookBack<Self, A, M, F, 1>
+    fn look_back<A, M, F>(
+        self,
+        extractor: M,
+        validation: F,
+        description: &str,
+    ) -> LookBack<Self, A, M, F, 1>
     where
         A: Default,
         M: Fn(&Self::BaseType) -> A,
         F: Fn(&A, &Self::BaseType) -> bool,
     {
-        LookBack::new(self, extractor, validation)
+        LookBack::new(self, extractor, validation, description)
     }
 
     /// Fails an iteration if it does not conform to some cycling
@@ -424,13 +434,14 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
         self,
         extractor: M,
         validation: F,
+        description: &str,
     ) -> LookBack<Self, A, M, F, N>
     where
         A: Default,
         M: Fn(&Self::BaseType) -> A,
         F: Fn(&A, &Self::BaseType) -> bool,
     {
-        LookBack::new(self, extractor, validation)
+        LookBack::new(self, extractor, validation, description)
     }
 
     /// Fails an iteration if `extractor` does not give the same result
@@ -477,11 +488,11 @@ pub trait ValidIter: Sized + Iterator<Item = VResult<Self::BaseType>> {
     /// ```
     ///
     /// [`Err(ValidErr::BrokenConstant(element))`](crate::valid_result::ValidErr)
-    fn const_over<A, M>(self, extractor: M) -> ConstOver<Self, A, M>
+    fn const_over<A, M>(self, extractor: M, description: &str) -> ConstOver<Self, A, M>
     where
         A: PartialEq,
         M: Fn(&Self::BaseType) -> A,
     {
-        ConstOver::new(self, extractor)
+        ConstOver::new(self, extractor, description)
     }
 }

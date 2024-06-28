@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{valid_iter::ValidIter, valid_result::ValidErr};
 
 use super::valid_result::VResult;
@@ -10,17 +12,19 @@ where
     iter: I,
     max_count: usize,
     counter: usize,
+    desc: Rc<str>,
 }
 
 impl<I> AtMost<I>
 where
     I: Sized + ValidIter + Iterator<Item = VResult<I::BaseType>>,
 {
-    pub(crate) fn new(iter: I, max_count: usize) -> AtMost<I> {
+    pub(crate) fn new(iter: I, max_count: usize, desc: &str) -> AtMost<I> {
         AtMost {
             iter,
             max_count,
             counter: 0,
+            desc: Rc::from(desc),
         }
     }
 }
@@ -34,7 +38,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
             Some(Ok(val)) => match self.counter >= self.max_count {
-                true => Some(Err(ValidErr::TooMany(val))),
+                true => Some(Err(ValidErr::WithElement(val, Rc::clone(&self.desc)))),
                 false => {
                     self.counter += 1;
                     Some(Ok(val))
@@ -59,27 +63,39 @@ mod tests {
 
     #[test]
     fn test_at_most() {
-        (0..10).validate().at_most(5).for_each(|res_i| match res_i {
-            Ok(i) => assert!(i < 5),
-            Err(err_i) => match err_i {
-                ValidErr::TooMany(i) => assert!(i >= 5),
-                _ => panic!("incorrect err for at most validator"),
-            },
-        })
+        (0..10)
+            .validate()
+            .at_most(5, "test")
+            .for_each(|res_i| match res_i {
+                Ok(i) => assert!(i < 5),
+                Err(err_i) => match err_i {
+                    ValidErr::WithElement(i, msg) => {
+                        assert!(i >= 5);
+                        assert_eq!(msg, Rc::from("test"))
+                    }
+                    _ => panic!("incorrect err for at most validator"),
+                },
+            })
     }
 
     #[test]
     fn test_at_most_has_correct_bounds() {
-        let failed_collection = (0..10).validate().at_most(9).collect::<Result<Vec<_>, _>>();
-        assert!(matches!(failed_collection, Err(ValidErr::TooMany(_))));
+        let failed_collection = (0..10)
+            .validate()
+            .at_most(9, "test")
+            .collect::<Result<Vec<_>, _>>();
+        assert!(matches!(failed_collection, Err(ValidErr::WithElement(_, _))));
 
         let collection = (0..10)
             .validate()
-            .at_most(10)
+            .at_most(10, "test")
             .collect::<Result<Vec<_>, _>>();
         assert!(matches!(collection, Ok(_)));
 
-        let empty_collection = (0..0).validate().at_most(0).collect::<Result<Vec<_>, _>>();
+        let empty_collection = (0..0)
+            .validate()
+            .at_most(0, "test")
+            .collect::<Result<Vec<_>, _>>();
         assert!(matches!(empty_collection, Ok(_)));
     }
 
@@ -87,7 +103,7 @@ mod tests {
     fn test_at_most_all_elements_are_present_and_in_order() {
         (0..10)
             .validate()
-            .at_most(5)
+            .at_most(5, "test")
             .enumerate()
             .for_each(|(i, res_i)| match i < 5 {
                 true => match res_i {
@@ -95,7 +111,9 @@ mod tests {
                     _ => panic!("bad match for item {}: {:?}", i, res_i),
                 },
                 false => match res_i {
-                    Err(ValidErr::TooMany(int)) if int == i as i32 => {}
+                    Err(ValidErr::WithElement(int, msg)) if int == i as i32 => {
+                        assert_eq!(msg, Rc::from("test"))
+                    }
                     _ => panic!("bad match for item {}: {:?}", i, res_i),
                 },
             })
@@ -106,11 +124,11 @@ mod tests {
         [0, 1, 2, 3]
             .iter()
             .validate()
-            .at_most(2)
+            .at_most(2, "test")
             .enumerate()
             .for_each(|(i, res_i)| match i < 2 {
                 true => assert!(matches!(res_i, Ok(_))),
-                false => assert!(matches!(res_i, Err(ValidErr::TooMany(_)))),
+                false => assert!(matches!(res_i, Err(ValidErr::WithElement(_, _)))),
             })
     }
 }
