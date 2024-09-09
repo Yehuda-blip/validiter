@@ -1,82 +1,75 @@
-use std::rc::Rc;
-
-use crate::{ValidIter, ValidErr, VResult};
+use crate::{ValidErr, ValidIter};
 
 /// The [`LookBack`] ValidIter adapter, for more info see
 ///  [`look_back`](crate::ValidIter::look_back) and [`look_back_n`](crate::ValidIter::look_back_n).
 #[derive(Debug, Clone)]
-pub struct LookBack<I, A, M, F, const N: usize>
+pub struct LookBackIter<I, E, A, M, F>
 where
-    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    A: Default,
+    I: ValidIter<E>,
+    E: ValidErr,
     M: Fn(&I::BaseType) -> A,
-    F: Fn(&A, &I::BaseType) -> bool,
+    F: Fn(&I::BaseType, &A) -> bool,
 {
     iter: I,
+    steps: usize,
     pos: usize,
-    value_store: [A; N],
+    value_store: Vec<A>,
     extractor: M,
     validation: F,
-    desc: Rc<str>,
+    factory: fn(I::BaseType, &A) -> E,
 }
 
-impl<I, A, M, F, const N: usize> LookBack<I, A, M, F, N>
+impl<I, E, A, M, F> LookBackIter<I, E, A, M, F>
 where
-    I: Sized + ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    A: Default,
-    M: Fn(&I::BaseType) -> A,
-    F: Fn(&A, &I::BaseType) -> bool,
+I: ValidIter<E>,
+E: ValidErr,
+M: Fn(&I::BaseType) -> A,
+F: Fn(&I::BaseType, &A) -> bool,
 {
-    pub(crate) fn new(iter: I, extractor: M, validation: F, desc: &str) -> LookBack<I, A, M, F, N> {
+    pub(crate) fn new(iter: I, steps: usize, extractor: M, validation: F, factory: fn(I::BaseType, &A) -> E) -> LookBackIter<I, E, A, M, F> {
         Self {
             iter,
+            steps,
             pos: 0,
-            //https://stackoverflow.com/a/67180898/16887886
-            value_store: [(); N].map(|_| A::default()),
+            value_store: Vec::with_capacity(steps),
             extractor,
             validation,
-            desc: Rc::from(desc),
+            factory
         }
     }
 }
 
-impl<I, A, M, F, const N: usize> Iterator for LookBack<I, A, M, F, N>
+impl<I, E, A, M, F> Iterator for LookBackIter<I, E, A, M, F>
 where
-    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    A: Default,
-    M: Fn(&I::BaseType) -> A,
-    F: Fn(&A, &I::BaseType) -> bool,
+I: ValidIter<E>,
+E: ValidErr,
+M: Fn(&I::BaseType) -> A,
+F: Fn(&I::BaseType, &A) -> bool,
 {
-    type Item = VResult<I::BaseType>;
+    type Item = Result<I::BaseType, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // there isn't a way currently to evaluate
-        // constant generics at compile time.
-        // for more info: "error[E0401]: can't
-        // use generic parameters from outer item"
-        // in order to make sure that the program
-        // does not crash when 'self.value_store'
-        // has size 0, we have this edge case check
-        if self.value_store.len() == 0 {
+        // prevent modulo 0 div
+        if self.steps == 0 {
             return self.iter.next();
         }
 
         match self.iter.next() {
             Some(Ok(val)) => {
-                if self.pos >= N {
-                    let cycle_index = self.pos % N;
+                if self.pos >= self.steps {
+                    let cycle_index = self.pos % self.steps;
                     let former = &self.value_store[cycle_index];
-                    let vresult = (self.validation)(former, &val);
+                    let vresult = (self.validation)(&val, former);
                     match vresult {
                         true => {
                             self.value_store[cycle_index] = (self.extractor)(&val);
                             self.pos += 1;
                             Some(Ok(val))
                         }
-                        false => Some(Err(ValidErr::WithElement(val, Rc::clone(&self.desc)))),
+                        false => Some(Err((self.factory)(val, former))),
                     }
                 } else {
-                    self.value_store[self.pos] = (self.extractor)(&val);
+                    self.value_store.push((self.extractor)(&val));
                     self.pos += 1;
                     Some(Ok(val))
                 }
@@ -86,27 +79,48 @@ where
     }
 }
 
-impl<I, A, M, F, const N: usize> ValidIter for LookBack<I, A, M, F, N>
+pub trait LookBack<E, A, M, F>: ValidIter<E> + Sized
 where
-    I: ValidIter + Iterator<Item = VResult<I::BaseType>>,
-    A: Default,
-    M: Fn(&I::BaseType) -> A,
-    F: Fn(&A, &I::BaseType) -> bool,
+E: ValidErr,
+M: Fn(&Self::BaseType) -> A,
+F: Fn(&Self::BaseType, &A) -> bool,
 {
-    type BaseType = I::BaseType;
+    fn look_back(self, steps: usize, extractor: M, validation: F, factory: fn(Self::BaseType, &A) -> E) -> LookBackIter<Self, E, A, M, F>;
+}
+
+impl<I, E, A, M, F> LookBack<E, A, M, F> for I
+where
+I: ValidIter<E>,
+E: ValidErr,
+M: Fn(&I::BaseType) -> A,
+F: Fn(&I::BaseType, &A) -> bool,
+{
+    fn look_back(self, steps: usize, extractor: M, validation: F, factory: fn(I::BaseType, &A) -> E) -> LookBackIter<Self, E, A, M, F> {
+        LookBackIter::new(self, steps, extractor, validation, factory)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
+    use crate::{ValidErr, adapters::LookBack};
 
-    use crate::{Unvalidatable, ValidIter, VResult, ValidErr};
+    #[derive(Debug, PartialEq)]
+    enum TestErr<T> {
+        LookBackFailed(T, String),
+        Is0Or3(T)
+    }
+
+    impl<T> ValidErr for TestErr<T> {}
+
+    fn lbfailed<T, A>(item: T, against: &A) -> TestErr<T> where A: std::fmt::Display {
+        TestErr::LookBackFailed(item, format!("{against}"))
+    }
 
     #[test]
     fn test_lookback_ok() {
         if (0..10)
-            .validate()
-            .look_back_n::<3, _, _, _>(|i| *i, |prev, i| prev < i, "lb")
+            .map(|i| Ok(i))
+            .look_back(3, |i| *i, |i, prev| prev < i, lbfailed)
             .any(|res| res.is_err())
         {
             panic!("look back failed on ok iteration")
@@ -115,11 +129,11 @@ mod tests {
 
     #[test]
     fn test_lookback_err() {
-        let lookback_err: Vec<VResult<_>> = (2..=4)
+        let lookback_err: Vec<Result<_, _>> = (2..=4)
             .chain(2..=2)
             .chain(0..6)
-            .validate()
-            .look_back_n::<3, _, _, _>(|i| *i, |prev, i| prev < i, "lb")
+            .map(|i| Ok(i))
+            .look_back(3, |i| *i, |i, prev| prev < i, lbfailed)
             .collect();
 
         assert_eq!(
@@ -128,10 +142,10 @@ mod tests {
                 Ok(2),
                 Ok(3),
                 Ok(4),
-                Err(ValidErr::WithElement(2, Rc::from("lb"))),
-                Err(ValidErr::WithElement(0, Rc::from("lb"))),
-                Err(ValidErr::WithElement(1, Rc::from("lb"))),
-                Err(ValidErr::WithElement(2, Rc::from("lb"))),
+                Err(TestErr::LookBackFailed(2, "2".to_string())),
+                Err(TestErr::LookBackFailed(0, "2".to_string())),
+                Err(TestErr::LookBackFailed(1, "2".to_string())),
+                Err(TestErr::LookBackFailed(2, "2".to_string())),
                 Ok(3),
                 Ok(4),
                 Ok(5),
@@ -143,8 +157,8 @@ mod tests {
     fn test_lookback_does_nothing_on_0() {
         if (0..5)
             .chain(0..5)
-            .validate()
-            .look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev < i, "lb")
+            .map(|i| Ok(i))
+            .look_back(0, |i| *i, |prev, i| prev < i, lbfailed)
             .any(|res| res.is_err())
         {
             panic!("look back failed when it should not be validating anything")
@@ -155,8 +169,8 @@ mod tests {
     fn test_lookback_does_nothing_when_lookback_is_larger_than_iter() {
         if (0..5)
             .chain(0..=0)
-            .validate()
-            .look_back_n::<7, _, _, _>(|i| *i, |prev, i| prev < i, "lb")
+            .map(|i| Ok(i))
+            .look_back(7, |i| *i, |prev, i| prev < i, lbfailed)
             .any(|res| res.is_err())
         {
             panic!("look back failed when lookback is out of bounds")
@@ -166,32 +180,32 @@ mod tests {
     #[test]
     fn test_lookback_bounds() {
         if (0..5)
-            .validate()
-            .look_back_n::<5, _, _, _>(|i| *i, |prev, i| prev == i, "lb")
+            .map(|i| Ok(i))
+            .look_back(5, |i| *i, |prev, i| prev == i, lbfailed)
             .any(|res| res.is_err())
         {
             panic!("failed on too early look back")
         }
 
         if !(0..5)
-            .validate()
-            .look_back_n::<4, _, _, _>(|i| *i, |prev, i| prev == i, "lb")
+            .map(|i| Ok(i))
+            .look_back(4, |i| *i, |prev, i| prev == i, lbfailed)
             .any(|res| res.is_err())
         {
             panic!("did not fail on count-1 look back")
         }
 
         if (0..=0)
-            .validate()
-            .look_back_n::<1, _, _, _>(|i| *i, |prev, i| prev == i, "lb")
+            .map(|i| Ok(i))
+            .look_back(1,|i| *i, |prev, i| prev == i, lbfailed)
             .any(|res| res.is_err())
         {
             panic!("failed on look back when count is 1")
         }
 
         if (0..0)
-            .validate()
-            .look_back_n::<0, _, _, _>(|i| *i, |prev, i| prev == i, "lb")
+            .map(|i| Ok(i))
+            .look_back(0, |i| *i, |prev, i| prev == i, lbfailed)
             .any(|res| res.is_err())
         {
             panic!("failed on look back when count is 0")
@@ -199,30 +213,19 @@ mod tests {
     }
 
     #[test]
-    fn test_default_lookback_is_1() {
-        if (0..4)
-            .validate()
-            .look_back(|i| *i, |prev, i| i - 1 == *prev, "lb")
-            .any(|res| res.is_err())
-        {
-            panic!("should be incrementing iteration, approved by look back")
-        }
-    }
-
-    #[test]
     fn test_lookback_ignores_its_errors() {
-        let results: Vec<VResult<_>> = [0, 0, 1, 2, 0]
+        let results: Vec<Result<_,_>> = [0, 0, 1, 2, 0]
             .iter()
-            .validate()
-            .look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i == prev, "lb")
+            .map(|i| Ok(i))
+            .look_back(2, |i| **i, |prev, i| i == *prev, lbfailed)
             .collect();
         assert_eq!(
             results,
             [
                 Ok(&0),
                 Ok(&0),
-                Err(ValidErr::WithElement(&1, Rc::from("lb"))),
-                Err(ValidErr::WithElement(&2, Rc::from("lb"))),
+                Err(TestErr::LookBackFailed(&1, "0".to_string())),
+                Err(TestErr::LookBackFailed(&2, "0".to_string())),
                 Ok(&0)
             ]
         )
@@ -230,10 +233,10 @@ mod tests {
 
     #[test]
     fn test_lookback_ok_then_err_then_ok_then_err_then_ok() {
-        let results: Vec<VResult<_>> = [0, 1, 0, 1, 1, 0, 1, 1, 0, 1]
+        let results: Vec<Result<_, _>> = [0, 1, 0, 1, 1, 0, 1, 1, 0, 1]
             .iter()
-            .validate()
-            .look_back_n::<2, _, _, _>(|i| **i, |prev, i| *i % 2 == prev % 2, "lb")
+            .map(|i| Ok(i))
+            .look_back(2, |i| **i, |i, prev| *i % 2 == *prev % 2, lbfailed)
             .collect();
         assert_eq!(
             results,
@@ -242,10 +245,10 @@ mod tests {
                 Ok(&1),
                 Ok(&0),
                 Ok(&1),
-                Err(ValidErr::WithElement(&1, Rc::from("lb"))),
+                Err(TestErr::LookBackFailed(&1, "0".to_string())),
                 Ok(&0),
                 Ok(&1),
-                Err(ValidErr::WithElement(&1, Rc::from("lb"))),
+                Err(TestErr::LookBackFailed(&1, "0".to_string())),
                 Ok(&0),
                 Ok(&1),
             ]
@@ -255,19 +258,18 @@ mod tests {
     #[test]
     fn test_lookback_ignores_errors() {
         let results = (0..=5)
-            .validate()
-            .ensure(|i| *i != 0 && *i != 3, "ensure")
-            .look_back(|i| i % 2, |parity, j| j % 2 != *parity, "look-back")
+            .map(|i| if i != 0 && i != 3 {return Ok(i)} else {return Err(TestErr::Is0Or3(i))})
+            .look_back(1, |i| i % 2, |j, parity| j % 2 != *parity, lbfailed)
             .collect::<Vec<_>>();
 
         assert_eq!(
             results,
             vec![
-                Err(ValidErr::WithElement(0, Rc::from("ensure"))),
+                Err(TestErr::Is0Or3(0)),
                 Ok(1),
                 Ok(2),
-                Err(ValidErr::WithElement(3, Rc::from("ensure"))),
-                Err(ValidErr::WithElement(4, Rc::from("look-back"))),
+                Err(TestErr::Is0Or3(3)),
+                Err(TestErr::LookBackFailed(4, "0".to_string())),
                 Ok(5)
             ]
         )
