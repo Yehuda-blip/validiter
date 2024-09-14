@@ -1,20 +1,26 @@
 /// The [`Atleast`] ValidIter adapter, for more info see [`at_least`](crate::ValidIter::at_least).
 #[derive(Debug, Clone)]
-pub struct AtLeastIter<I, T, E>
+pub struct AtLeastIter<I, T, E, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
+    Factory: Fn() -> E,
 {
     iter: I,
     min_count: usize,
     counter: usize,
-    factory: fn() -> E,
+    factory: Factory,
 }
 
-impl<I, T, E> AtLeastIter<I, T, E>
+impl<I, T, E, Factory> AtLeastIter<I, T, E, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
+    Factory: Fn() -> E,
 {
-    pub(crate) fn new(iter: I, min_count: usize, factory: fn() -> E) -> AtLeastIter<I, T, E> {
+    pub(crate) fn new(
+        iter: I,
+        min_count: usize,
+        factory: Factory,
+    ) -> AtLeastIter<I, T, E, Factory> {
         AtLeastIter {
             iter,
             min_count,
@@ -24,9 +30,10 @@ where
     }
 }
 
-impl<I, T, E> Iterator for AtLeastIter<I, T, E>
+impl<I, T, E, Factory> Iterator for AtLeastIter<I, T, E, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
+    Factory: Fn() -> E,
 {
     type Item = Result<T, E>;
 
@@ -48,15 +55,19 @@ where
     }
 }
 
-pub trait AtLeast<T, E>: Iterator<Item = Result<T, E>> + Sized {
-    fn at_least(self, min_count: usize, factory: fn() -> E) -> AtLeastIter<Self, T, E>;
+pub trait AtLeast<T, E, Factory>: Iterator<Item = Result<T, E>> + Sized
+where
+    Factory: Fn() -> E,
+{
+    fn at_least(self, min_count: usize, factory: Factory) -> AtLeastIter<Self, T, E, Factory>;
 }
 
-impl<I, T, E> AtLeast<T, E> for I
+impl<I, T, E, Factory> AtLeast<T, E, Factory> for I
 where
     I: Iterator<Item = Result<T, E>>,
+    Factory: Fn() -> E,
 {
-    fn at_least(self, min_count: usize, factory: fn() -> E) -> AtLeastIter<Self, T, E> {
+    fn at_least(self, min_count: usize, factory: Factory) -> AtLeastIter<Self, T, E, Factory> {
         AtLeastIter::new(self, min_count, factory)
     }
 }

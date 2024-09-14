@@ -1,11 +1,16 @@
-use validiter::{Unvalidatable, ValidIter};
-
 extern crate validiter;
+use validiter::AtMost;
+
+
+struct TooMany(i32);
 
 fn main() {
     let collection_failure = (0..10)
-        .validate()
-        .at_most(7, "too many!")
+        .map(|i| Ok(i))
+        .at_most(7, |i| TooMany(i))
         .collect::<Result<Vec<_>, _>>();
-    print!("{:?}", collection_failure)
+    match collection_failure {
+        Ok(_vector) => unreachable!(),
+        Err(TooMany(v)) => print!("{v} is the first value obtained after reaching limit")
+    }
 }
