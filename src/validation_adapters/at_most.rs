@@ -1,28 +1,20 @@
-use crate::{ValidErr, ValidIter};
-
 /// The [`AtMost`] ValidIter adapter, for more info see [`at_most`](crate::ValidIter::at_most).
 #[derive(Debug, Clone)]
-struct AtMostIter<I, E>
+struct AtMostIter<I, T, E>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
 {
     iter: I,
     max_count: usize,
     counter: usize,
-    factory: fn(I::BaseType) -> E,
+    factory: fn(T) -> E,
 }
 
-impl<I, E> AtMostIter<I, E>
+impl<I, T, E> AtMostIter<I, T, E>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
 {
-    pub(crate) fn new(
-        iter: I,
-        max_count: usize,
-        factory: fn(I::BaseType) -> E,
-    ) -> AtMostIter<I, E> {
+    pub(crate) fn new(iter: I, max_count: usize, factory: fn(T) -> E) -> AtMostIter<I, T, E> {
         AtMostIter {
             iter,
             max_count,
@@ -32,12 +24,11 @@ where
     }
 }
 
-impl<I, E> Iterator for AtMostIter<I, E>
+impl<I, T, E> Iterator for AtMostIter<I, T, E>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
 {
-    type Item = Result<I::BaseType, E>;
+    type Item = Result<T, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
@@ -53,19 +44,15 @@ where
     }
 }
 
-pub trait AtMost<E>: ValidIter<E> + Sized
-where
-    E: ValidErr
-{
-    fn at_most(self, min_count: usize, factory: fn(Self::BaseType) -> E) -> AtMostIter<Self, E>;
+pub trait AtMost<T, E>: Iterator<Item = Result<T, E>> + Sized {
+    fn at_most(self, min_count: usize, factory: fn(T) -> E) -> AtMostIter<Self, T, E>;
 }
 
-impl<I, E> AtMost<E> for I
+impl<I, T, E> AtMost<T, E> for I
 where
-    I: ValidIter<E> + Sized,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
 {
-    fn at_most(self, min_count: usize, factory: fn(Self::BaseType) -> E) -> AtMostIter<Self, E> {
+    fn at_most(self, min_count: usize, factory: fn(T) -> E) -> AtMostIter<Self, T, E> {
         AtMostIter::new(self, min_count, factory)
     }
 }
@@ -83,8 +70,6 @@ mod tests {
     const fn too_many<T>(item: T) -> TestErr<T> {
         TestErr::TooMany(item)
     }
-
-    impl<T> ValidErr for TestErr<T> {}
 
     #[test]
     fn test_at_most() {

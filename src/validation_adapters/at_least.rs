@@ -1,11 +1,8 @@
-use crate::{ValidErr, ValidIter};
-
 /// The [`Atleast`] ValidIter adapter, for more info see [`at_least`](crate::ValidIter::at_least).
 #[derive(Debug, Clone)]
-struct AtLeastIter<I, E>
+struct AtLeastIter<I, T, E>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
 {
     iter: I,
     min_count: usize,
@@ -13,12 +10,11 @@ where
     factory: fn() -> E,
 }
 
-impl<I, E> AtLeastIter<I, E>
+impl<I, T, E> AtLeastIter<I, T, E>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
 {
-    pub(crate) fn new(iter: I, min_count: usize, factory: fn() -> E) -> AtLeastIter<I, E> {
+    pub(crate) fn new(iter: I, min_count: usize, factory: fn() -> E) -> AtLeastIter<I, T, E> {
         AtLeastIter {
             iter,
             min_count,
@@ -28,12 +24,11 @@ where
     }
 }
 
-impl<I, E> Iterator for AtLeastIter<I, E>
+impl<I, T, E> Iterator for AtLeastIter<I, T, E>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
 {
-    type Item = Result<I::BaseType, E>;
+    type Item = Result<T, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
@@ -53,19 +48,15 @@ where
     }
 }
 
-pub trait AtLeast<E>: ValidIter<E> + Sized
-where
-    E: ValidErr
-{
-    fn at_least(self, min_count: usize, factory: fn() -> E) -> AtLeastIter<Self, E>;
+pub trait AtLeast<T, E>: Iterator<Item = Result<T, E>> + Sized {
+    fn at_least(self, min_count: usize, factory: fn() -> E) -> AtLeastIter<Self, T, E>;
 }
 
-impl<I, E> AtLeast<E> for I
+impl<I, T, E> AtLeast<T, E> for I
 where
-    I: ValidIter<E> + Sized,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
 {
-    fn at_least(self, min_count: usize, factory: fn() -> E) -> AtLeastIter<Self, E> {
+    fn at_least(self, min_count: usize, factory: fn() -> E) -> AtLeastIter<Self, T, E> {
         AtLeastIter::new(self, min_count, factory)
     }
 }
@@ -73,15 +64,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ValidErr;
 
     #[derive(Debug, PartialEq)]
     enum TestErr {
         NotEnough,
         NotOdd(i32),
     }
-
-    impl ValidErr for TestErr {}
 
     const fn not_enough() -> TestErr {
         TestErr::NotEnough

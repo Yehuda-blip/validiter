@@ -1,32 +1,28 @@
-use crate::{valid_iter::ValidIter, ValidErr};
-
 /// The [`ConstOver`] ValidIter adapter, for more info see [`const_over`](crate::ValidIter::const_over).
 #[derive(Debug, Clone)]
-struct ConstOverIter<I, E, A, M>
+struct ConstOverIter<I, T, E, A, M>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
     A: PartialEq,
-    M: Fn(&I::BaseType) -> A,
+    M: Fn(&T) -> A,
 {
     iter: I,
     stored_value: Option<A>,
     extractor: M,
-    factory: fn(I::BaseType, A, &A) -> E,
+    factory: fn(T, A, &A) -> E,
 }
 
-impl<I, E, A, M> ConstOverIter<I, E, A, M>
+impl<I, T, E, A, M> ConstOverIter<I, T, E, A, M>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
-    A: PartialEq,
-    M: Fn(&I::BaseType) -> A,
+I: Iterator<Item = Result<T, E>>,
+A: PartialEq,
+M: Fn(&T) -> A,
 {
     pub(crate) fn new(
         iter: I,
         extractor: M,
-        factory: fn(I::BaseType, A, &A) -> E,
-    ) -> ConstOverIter<I, E, A, M> {
+        factory: fn(T, A, &A) -> E,
+    ) -> ConstOverIter<I, T, E, A, M> {
         Self {
             iter,
             stored_value: None,
@@ -36,14 +32,13 @@ where
     }
 }
 
-impl<I, E, A, M> Iterator for ConstOverIter<I, E, A, M>
+impl<I, T, E, A, M> Iterator for ConstOverIter<I, T, E, A, M>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
-    A: PartialEq,
-    M: Fn(&I::BaseType) -> A,
+I: Iterator<Item = Result<T, E>>,
+A: PartialEq,
+M: Fn(&T) -> A,
 {
-    type Item = Result<I::BaseType, E>;
+    type Item = Result<T, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
@@ -65,31 +60,29 @@ where
     }
 }
 
-pub trait ConstOver<E, A, M>: ValidIter<E> + Sized
+pub trait ConstOver<T, E, A, M>: Iterator<Item = Result<T, E>> + Sized
 where
-    E: ValidErr,
     A: PartialEq,
-    M: Fn(&Self::BaseType) -> A,
+    M: Fn(&T) -> A,
 {
     fn const_over(
         self,
         extractor: M,
-        factory: fn(Self::BaseType, A, &A) -> E,
-    ) -> ConstOverIter<Self, E, A, M>;
+        factory: fn(T, A, &A) -> E,
+    ) -> ConstOverIter<Self, T, E, A, M>;
 }
 
-impl<I, E, A, M> ConstOver<E, A, M> for I
+impl<I, T, E, A, M> ConstOver<T, E, A, M> for I
 where
-    I: ValidIter<E> + Sized,
-    E: ValidErr,
+    I: Iterator<Item = Result<T, E>>,
     A: PartialEq,
-    M: Fn(&Self::BaseType) -> A,
+    M: Fn(&T) -> A,
 {
     fn const_over(
         self,
         extractor: M,
-        factory: fn(Self::BaseType, A, &A) -> E,
-    ) -> ConstOverIter<Self, E, A, M> {
+        factory: fn(T, A, &A) -> E,
+    ) -> ConstOverIter<Self, T, E, A, M> {
         ConstOverIter::new(self, extractor, factory)
     }
 }
@@ -98,7 +91,7 @@ where
 mod tests {
     use std::iter::repeat;
 
-    use crate::{validation_adapters::ConstOver, ValidErr};
+    use crate::ConstOver;
 
     #[derive(Debug, PartialEq)]
     enum TestErr<T, A>
@@ -108,8 +101,6 @@ mod tests {
         BrokenConst(T, A, String),
         Not0Or2(T),
     }
-
-    impl<T, A> ValidErr for TestErr<T, A> where A: std::fmt::Display {}
 
     fn broken_const<T, A>(item: T, eval: A, expected: &A) -> TestErr<T, A>
     where

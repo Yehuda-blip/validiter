@@ -1,20 +1,13 @@
-#[cfg(feature = "adapters")]
-pub mod validation_adapters {
+pub(crate) mod validation_adapters {
     pub(crate) mod at_least;
     pub(crate) mod at_most;
     pub(crate) mod const_over;
     pub(crate) mod look_back;
-    pub use at_least::AtLeast;
-    pub use at_most::AtMost;
-    pub use const_over::ConstOver;
-    pub use look_back::LookBack;
 }
-
-mod valid_iter;
-
-pub use validation_adapters as adapters;
-pub use valid_iter::ValidErr;
-pub use valid_iter::ValidIter;
+pub use validation_adapters::at_least::AtLeast;
+pub use validation_adapters::at_most::AtMost;
+pub use validation_adapters::const_over::ConstOver;
+pub use validation_adapters::look_back::LookBack;
 
 // #[cfg(test)]
 // mod tests {

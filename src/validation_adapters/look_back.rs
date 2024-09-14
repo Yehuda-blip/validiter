@@ -1,14 +1,11 @@
-use crate::{ValidErr, ValidIter};
-
 /// The [`LookBack`] ValidIter adapter, for more info see
 ///  [`look_back`](crate::ValidIter::look_back) and [`look_back_n`](crate::ValidIter::look_back_n).
 #[derive(Debug, Clone)]
-pub struct LookBackIter<I, E, A, M, F>
+pub struct LookBackIter<I, T, E, A, M, F>
 where
-    I: ValidIter<E>,
-    E: ValidErr,
-    M: Fn(&I::BaseType) -> A,
-    F: Fn(&I::BaseType, &A) -> bool,
+    I: Iterator<Item = Result<T, E>>,
+    M: Fn(&T) -> A,
+    F: Fn(&T, &A) -> bool,
 {
     iter: I,
     steps: usize,
@@ -16,17 +13,16 @@ where
     value_store: Vec<A>,
     extractor: M,
     validation: F,
-    factory: fn(I::BaseType, &A) -> E,
+    factory: fn(T, &A) -> E,
 }
 
-impl<I, E, A, M, F> LookBackIter<I, E, A, M, F>
+impl<I, T, E, A, M, F> LookBackIter<I, T, E, A, M, F>
 where
-I: ValidIter<E>,
-E: ValidErr,
-M: Fn(&I::BaseType) -> A,
-F: Fn(&I::BaseType, &A) -> bool,
+I: Iterator<Item = Result<T, E>>,
+M: Fn(&T) -> A,
+F: Fn(&T, &A) -> bool,
 {
-    pub(crate) fn new(iter: I, steps: usize, extractor: M, validation: F, factory: fn(I::BaseType, &A) -> E) -> LookBackIter<I, E, A, M, F> {
+    pub(crate) fn new(iter: I, steps: usize, extractor: M, validation: F, factory: fn(T, &A) -> E) -> LookBackIter<I, T, E, A, M, F> {
         Self {
             iter,
             steps,
@@ -39,14 +35,13 @@ F: Fn(&I::BaseType, &A) -> bool,
     }
 }
 
-impl<I, E, A, M, F> Iterator for LookBackIter<I, E, A, M, F>
+impl<I, T, E, A, M, F> Iterator for LookBackIter<I, T, E, A, M, F>
 where
-I: ValidIter<E>,
-E: ValidErr,
-M: Fn(&I::BaseType) -> A,
-F: Fn(&I::BaseType, &A) -> bool,
+I: Iterator<Item = Result<T, E>>,
+M: Fn(&T) -> A,
+F: Fn(&T, &A) -> bool,
 {
-    type Item = Result<I::BaseType, E>;
+    type Item = Result<T, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // prevent modulo 0 div
@@ -79,38 +74,34 @@ F: Fn(&I::BaseType, &A) -> bool,
     }
 }
 
-pub trait LookBack<E, A, M, F>: ValidIter<E> + Sized
+pub trait LookBack<T, E, A, M, F>: Iterator<Item = Result<T, E>> + Sized
 where
-E: ValidErr,
-M: Fn(&Self::BaseType) -> A,
-F: Fn(&Self::BaseType, &A) -> bool,
+M: Fn(&T) -> A,
+F: Fn(&T, &A) -> bool,
 {
-    fn look_back(self, steps: usize, extractor: M, validation: F, factory: fn(Self::BaseType, &A) -> E) -> LookBackIter<Self, E, A, M, F>;
+    fn look_back(self, steps: usize, extractor: M, validation: F, factory: fn(T, &A) -> E) -> LookBackIter<Self, T, E, A, M, F>;
 }
 
-impl<I, E, A, M, F> LookBack<E, A, M, F> for I
+impl<I, T, E, A, M, F> LookBack<T, E, A, M, F> for I
 where
-I: ValidIter<E>,
-E: ValidErr,
-M: Fn(&I::BaseType) -> A,
-F: Fn(&I::BaseType, &A) -> bool,
+I: Iterator<Item = Result<T, E>>,
+M: Fn(&T) -> A,
+F: Fn(&T, &A) -> bool,
 {
-    fn look_back(self, steps: usize, extractor: M, validation: F, factory: fn(I::BaseType, &A) -> E) -> LookBackIter<Self, E, A, M, F> {
+    fn look_back(self, steps: usize, extractor: M, validation: F, factory: fn(T, &A) -> E) -> LookBackIter<Self, T, E, A, M, F> {
         LookBackIter::new(self, steps, extractor, validation, factory)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{ValidErr, adapters::LookBack};
+    use crate::LookBack;
 
     #[derive(Debug, PartialEq)]
     enum TestErr<T> {
         LookBackFailed(T, String),
         Is0Or3(T)
     }
-
-    impl<T> ValidErr for TestErr<T> {}
 
     fn lbfailed<T, A>(item: T, against: &A) -> TestErr<T> where A: std::fmt::Display {
         TestErr::LookBackFailed(item, format!("{against}"))
