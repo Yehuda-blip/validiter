@@ -1,6 +1,6 @@
 /// The [`AtMost`] ValidIter adapter, for more info see [`at_most`](crate::ValidIter::at_most).
 #[derive(Debug, Clone)]
-struct AtMostIter<I, T, E>
+pub struct AtMostIter<I, T, E>
 where
     I: Iterator<Item = Result<T, E>>,
 {

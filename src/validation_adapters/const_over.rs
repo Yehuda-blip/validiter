@@ -1,6 +1,6 @@
 /// The [`ConstOver`] ValidIter adapter, for more info see [`const_over`](crate::ValidIter::const_over).
 #[derive(Debug, Clone)]
-struct ConstOverIter<I, T, E, A, M>
+pub struct ConstOverIter<I, T, E, A, M>
 where
     I: Iterator<Item = Result<T, E>>,
     A: PartialEq,

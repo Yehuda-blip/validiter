@@ -1,6 +1,6 @@
 /// The [`Atleast`] ValidIter adapter, for more info see [`at_least`](crate::ValidIter::at_least).
 #[derive(Debug, Clone)]
-struct AtLeastIter<I, T, E>
+pub struct AtLeastIter<I, T, E>
 where
     I: Iterator<Item = Result<T, E>>,
 {
