@@ -1,22 +1,26 @@
+use std::iter::Enumerate;
+
 /// The [`AtMost`] ValidIter adapter, for more info see [`at_most`](crate::ValidIter::at_most).
 #[derive(Debug, Clone)]
-pub struct AtMostIter<I, T, E>
+pub struct AtMostIter<I, T, E, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
+    Factory: Fn(usize, T) -> E,
 {
-    iter: I,
+    iter: Enumerate<I>,
     max_count: usize,
     counter: usize,
-    factory: fn(T) -> E,
+    factory: Factory,
 }
 
-impl<I, T, E> AtMostIter<I, T, E>
+impl<I, T, E, Factory> AtMostIter<I, T, E, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
+    Factory: Fn(usize, T) -> E,
 {
-    pub(crate) fn new(iter: I, max_count: usize, factory: fn(T) -> E) -> AtMostIter<I, T, E> {
+    pub(crate) fn new(iter: I, max_count: usize, factory: Factory) -> AtMostIter<I, T, E, Factory> {
         AtMostIter {
-            iter,
+            iter: iter.enumerate(),
             max_count,
             counter: 0,
             factory,
@@ -24,35 +28,41 @@ where
     }
 }
 
-impl<I, T, E> Iterator for AtMostIter<I, T, E>
+impl<I, T, E, Factory> Iterator for AtMostIter<I, T, E, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
+    Factory: Fn(usize, T) -> E,
 {
     type Item = Result<T, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(Ok(val)) => match self.counter >= self.max_count {
-                true => Some(Err((self.factory)(val))),
+            Some((i, Ok(val))) => match self.counter >= self.max_count {
+                true => Some(Err((self.factory)(i, val))),
                 false => {
                     self.counter += 1;
                     Some(Ok(val))
                 }
             },
-            other => other,
+            Some((_, Err(err))) => Some(Err(err)),
+            None => None,
         }
     }
 }
 
-pub trait AtMost<T, E>: Iterator<Item = Result<T, E>> + Sized {
-    fn at_most(self, min_count: usize, factory: fn(T) -> E) -> AtMostIter<Self, T, E>;
+pub trait AtMost<T, E, Factory>: Iterator<Item = Result<T, E>> + Sized
+where
+    Factory: Fn(usize, T) -> E,
+{
+    fn at_most(self, min_count: usize, factory: Factory) -> AtMostIter<Self, T, E, Factory>;
 }
 
-impl<I, T, E> AtMost<T, E> for I
+impl<I, T, E, Factory> AtMost<T, E, Factory> for I
 where
     I: Iterator<Item = Result<T, E>>,
+    Factory: Fn(usize, T) -> E,
 {
-    fn at_most(self, min_count: usize, factory: fn(T) -> E) -> AtMostIter<Self, T, E> {
+    fn at_most(self, min_count: usize, factory: Factory) -> AtMostIter<Self, T, E, Factory> {
         AtMostIter::new(self, min_count, factory)
     }
 }
@@ -63,12 +73,12 @@ mod tests {
 
     #[derive(Debug, PartialEq)]
     enum TestErr<T> {
-        TooMany(T),
+        TooMany(usize, T),
         IsOdd(T),
     }
 
-    const fn too_many<T>(item: T) -> TestErr<T> {
-        TestErr::TooMany(item)
+    const fn too_many<T>(violating_index: usize, item: T) -> TestErr<T> {
+        TestErr::TooMany(violating_index, item)
     }
 
     #[test]
@@ -78,7 +88,10 @@ mod tests {
             .at_most(5, too_many)
             .for_each(|res_i| match res_i {
                 Ok(i) => assert!(i < 5),
-                Err(TestErr::TooMany(i)) => assert!(i >= 5),
+                Err(TestErr::TooMany(i, v)) => {
+                    assert_eq!(v as usize, i);
+                    assert!(i >= 5)
+                }
                 e => panic!("bad error for too many {e:?}"),
             })
     }
@@ -89,7 +102,7 @@ mod tests {
             .map(|i| Ok(i))
             .at_most(9, too_many)
             .collect::<Result<Vec<_>, _>>();
-        assert!(matches!(failed_collection, Err(TestErr::TooMany(9))));
+        assert!(matches!(failed_collection, Err(TestErr::TooMany(9, 9))));
 
         let collection = (0..10)
             .map(|i| Ok(i))
@@ -116,7 +129,7 @@ mod tests {
                     _ => panic!("bad match for item {}: {:?}", i, res_i),
                 },
                 false => match res_i {
-                    Err(TestErr::TooMany(int)) if int == i as i32 => {}
+                    Err(TestErr::TooMany(_, int)) if int == i as i32 => {}
                     _ => panic!("bad match for item {}: {:?}", i, res_i),
                 },
             })
@@ -131,7 +144,7 @@ mod tests {
             .enumerate()
             .for_each(|(i, res_i)| match i < 2 {
                 true => assert!(matches!(res_i, Ok(_))),
-                false => assert!(matches!(res_i, Err(TestErr::TooMany(_)))),
+                false => assert!(matches!(res_i, Err(TestErr::TooMany(_, _)))),
             })
     }
 
@@ -154,7 +167,7 @@ mod tests {
                 Err(TestErr::IsOdd(1)),
                 Ok(2),
                 Err(TestErr::IsOdd(3)),
-                Err(TestErr::TooMany(4))
+                Err(TestErr::TooMany(4, 4))
             ]
         )
     }

@@ -1,56 +1,71 @@
+use std::iter::Enumerate;
+
 /// The [`LookBack`] ValidIter adapter, for more info see
 ///  [`look_back`](crate::ValidIter::look_back) and [`look_back_n`](crate::ValidIter::look_back_n).
 #[derive(Debug, Clone)]
-pub struct LookBackIter<I, T, E, A, M, F>
+pub struct LookBackIter<I, T, E, A, M, F, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
     M: Fn(&T) -> A,
     F: Fn(&T, &A) -> bool,
+    Factory: Fn(usize, T, &A) -> E,
 {
-    iter: I,
+    iter: Enumerate<I>,
     steps: usize,
     pos: usize,
     value_store: Vec<A>,
     extractor: M,
     validation: F,
-    factory: fn(T, &A) -> E,
+    factory: Factory,
 }
 
-impl<I, T, E, A, M, F> LookBackIter<I, T, E, A, M, F>
+impl<I, T, E, A, M, F, Factory> LookBackIter<I, T, E, A, M, F, Factory>
 where
-I: Iterator<Item = Result<T, E>>,
-M: Fn(&T) -> A,
-F: Fn(&T, &A) -> bool,
+    I: Iterator<Item = Result<T, E>>,
+    M: Fn(&T) -> A,
+    F: Fn(&T, &A) -> bool,
+    Factory: Fn(usize, T, &A) -> E,
 {
-    pub(crate) fn new(iter: I, steps: usize, extractor: M, validation: F, factory: fn(T, &A) -> E) -> LookBackIter<I, T, E, A, M, F> {
+    pub(crate) fn new(
+        iter: I,
+        steps: usize,
+        extractor: M,
+        validation: F,
+        factory: Factory,
+    ) -> LookBackIter<I, T, E, A, M, F, Factory> {
         Self {
-            iter,
+            iter: iter.enumerate(),
             steps,
             pos: 0,
             value_store: Vec::with_capacity(steps),
             extractor,
             validation,
-            factory
+            factory,
         }
     }
 }
 
-impl<I, T, E, A, M, F> Iterator for LookBackIter<I, T, E, A, M, F>
+impl<I, T, E, A, M, F, Factory> Iterator for LookBackIter<I, T, E, A, M, F, Factory>
 where
-I: Iterator<Item = Result<T, E>>,
-M: Fn(&T) -> A,
-F: Fn(&T, &A) -> bool,
+    I: Iterator<Item = Result<T, E>>,
+    M: Fn(&T) -> A,
+    F: Fn(&T, &A) -> bool,
+    Factory: Fn(usize, T, &A) -> E,
 {
     type Item = Result<T, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // prevent modulo 0 div
         if self.steps == 0 {
-            return self.iter.next();
+            if let Some((_, item)) = self.iter.next() {
+                return Some(item);
+            } else {
+                return None;
+            };
         }
 
         match self.iter.next() {
-            Some(Ok(val)) => {
+            Some((i, Ok(val))) => {
                 if self.pos >= self.steps {
                     let cycle_index = self.pos % self.steps;
                     let former = &self.value_store[cycle_index];
@@ -61,7 +76,7 @@ F: Fn(&T, &A) -> bool,
                             self.pos += 1;
                             Some(Ok(val))
                         }
-                        false => Some(Err((self.factory)(val, former))),
+                        false => Some(Err((self.factory)(i, val, former))),
                     }
                 } else {
                     self.value_store.push((self.extractor)(&val));
@@ -69,26 +84,41 @@ F: Fn(&T, &A) -> bool,
                     Some(Ok(val))
                 }
             }
-            other => other,
+            Some((_, err)) => Some(err),
+            None => None,
         }
     }
 }
 
-pub trait LookBack<T, E, A, M, F>: Iterator<Item = Result<T, E>> + Sized
+pub trait LookBack<T, E, A, M, F, Factory>: Iterator<Item = Result<T, E>> + Sized
 where
-M: Fn(&T) -> A,
-F: Fn(&T, &A) -> bool,
+    M: Fn(&T) -> A,
+    F: Fn(&T, &A) -> bool,
+    Factory: Fn(usize, T, &A) -> E,
 {
-    fn look_back(self, steps: usize, extractor: M, validation: F, factory: fn(T, &A) -> E) -> LookBackIter<Self, T, E, A, M, F>;
+    fn look_back(
+        self,
+        steps: usize,
+        extractor: M,
+        validation: F,
+        factory: Factory,
+    ) -> LookBackIter<Self, T, E, A, M, F, Factory>;
 }
 
-impl<I, T, E, A, M, F> LookBack<T, E, A, M, F> for I
+impl<I, T, E, A, M, F, Factory> LookBack<T, E, A, M, F, Factory> for I
 where
-I: Iterator<Item = Result<T, E>>,
-M: Fn(&T) -> A,
-F: Fn(&T, &A) -> bool,
+    I: Iterator<Item = Result<T, E>>,
+    M: Fn(&T) -> A,
+    F: Fn(&T, &A) -> bool,
+    Factory: Fn(usize, T, &A) -> E,
 {
-    fn look_back(self, steps: usize, extractor: M, validation: F, factory: fn(T, &A) -> E) -> LookBackIter<Self, T, E, A, M, F> {
+    fn look_back(
+        self,
+        steps: usize,
+        extractor: M,
+        validation: F,
+        factory: Factory,
+    ) -> LookBackIter<Self, T, E, A, M, F, Factory> {
         LookBackIter::new(self, steps, extractor, validation, factory)
     }
 }
@@ -99,12 +129,15 @@ mod tests {
 
     #[derive(Debug, PartialEq)]
     enum TestErr<T> {
-        LookBackFailed(T, String),
-        Is0Or3(T)
+        LookBackFailed(usize, T, String),
+        Is0Or3(T),
     }
 
-    fn lbfailed<T, A>(item: T, against: &A) -> TestErr<T> where A: std::fmt::Display {
-        TestErr::LookBackFailed(item, format!("{against}"))
+    fn lbfailed<T, A>(err_index: usize, item: T, against: &A) -> TestErr<T>
+    where
+        A: std::fmt::Display,
+    {
+        TestErr::LookBackFailed(err_index, item, format!("{against}"))
     }
 
     #[test]
@@ -133,10 +166,10 @@ mod tests {
                 Ok(2),
                 Ok(3),
                 Ok(4),
-                Err(TestErr::LookBackFailed(2, "2".to_string())),
-                Err(TestErr::LookBackFailed(0, "2".to_string())),
-                Err(TestErr::LookBackFailed(1, "2".to_string())),
-                Err(TestErr::LookBackFailed(2, "2".to_string())),
+                Err(TestErr::LookBackFailed(3, 2, "2".to_string())),
+                Err(TestErr::LookBackFailed(4, 0, "2".to_string())),
+                Err(TestErr::LookBackFailed(5, 1, "2".to_string())),
+                Err(TestErr::LookBackFailed(6, 2, "2".to_string())),
                 Ok(3),
                 Ok(4),
                 Ok(5),
@@ -188,7 +221,7 @@ mod tests {
 
         if (0..=0)
             .map(|i| Ok(i))
-            .look_back(1,|i| *i, |prev, i| prev == i, lbfailed)
+            .look_back(1, |i| *i, |prev, i| prev == i, lbfailed)
             .any(|res| res.is_err())
         {
             panic!("failed on look back when count is 1")
@@ -205,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_lookback_ignores_its_errors() {
-        let results: Vec<Result<_,_>> = [0, 0, 1, 2, 0]
+        let results: Vec<Result<_, _>> = [0, 0, 1, 2, 0]
             .iter()
             .map(|i| Ok(i))
             .look_back(2, |i| **i, |prev, i| i == *prev, lbfailed)
@@ -215,8 +248,8 @@ mod tests {
             [
                 Ok(&0),
                 Ok(&0),
-                Err(TestErr::LookBackFailed(&1, "0".to_string())),
-                Err(TestErr::LookBackFailed(&2, "0".to_string())),
+                Err(TestErr::LookBackFailed(2, &1, "0".to_string())),
+                Err(TestErr::LookBackFailed(3, &2, "0".to_string())),
                 Ok(&0)
             ]
         )
@@ -236,10 +269,10 @@ mod tests {
                 Ok(&1),
                 Ok(&0),
                 Ok(&1),
-                Err(TestErr::LookBackFailed(&1, "0".to_string())),
+                Err(TestErr::LookBackFailed(4, &1, "0".to_string())),
                 Ok(&0),
                 Ok(&1),
-                Err(TestErr::LookBackFailed(&1, "0".to_string())),
+                Err(TestErr::LookBackFailed(7, &1, "0".to_string())),
                 Ok(&0),
                 Ok(&1),
             ]
@@ -249,7 +282,13 @@ mod tests {
     #[test]
     fn test_lookback_ignores_errors() {
         let results = (0..=5)
-            .map(|i| if i != 0 && i != 3 {return Ok(i)} else {return Err(TestErr::Is0Or3(i))})
+            .map(|i| {
+                if i != 0 && i != 3 {
+                    return Ok(i);
+                } else {
+                    return Err(TestErr::Is0Or3(i));
+                }
+            })
             .look_back(1, |i| i % 2, |j, parity| j % 2 != *parity, lbfailed)
             .collect::<Vec<_>>();
 
@@ -260,7 +299,7 @@ mod tests {
                 Ok(1),
                 Ok(2),
                 Err(TestErr::Is0Or3(3)),
-                Err(TestErr::LookBackFailed(4, "0".to_string())),
+                Err(TestErr::LookBackFailed(4, 4, "0".to_string())),
                 Ok(5)
             ]
         )

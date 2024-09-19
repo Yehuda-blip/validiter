@@ -1,30 +1,34 @@
+use std::iter::Enumerate;
+
 /// The [`ConstOver`] ValidIter adapter, for more info see [`const_over`](crate::ValidIter::const_over).
 #[derive(Debug, Clone)]
-pub struct ConstOverIter<I, T, E, A, M>
+pub struct ConstOverIter<I, T, E, A, M, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
     A: PartialEq,
     M: Fn(&T) -> A,
+    Factory: Fn(usize, T, A, &A) -> E,
 {
-    iter: I,
+    iter: Enumerate<I>,
     stored_value: Option<A>,
     extractor: M,
-    factory: fn(T, A, &A) -> E,
+    factory: Factory,
 }
 
-impl<I, T, E, A, M> ConstOverIter<I, T, E, A, M>
+impl<I, T, E, A, M, Factory> ConstOverIter<I, T, E, A, M, Factory>
 where
-I: Iterator<Item = Result<T, E>>,
-A: PartialEq,
-M: Fn(&T) -> A,
+    I: Iterator<Item = Result<T, E>>,
+    A: PartialEq,
+    M: Fn(&T) -> A,
+    Factory: Fn(usize, T, A, &A) -> E,
 {
     pub(crate) fn new(
         iter: I,
         extractor: M,
-        factory: fn(T, A, &A) -> E,
-    ) -> ConstOverIter<I, T, E, A, M> {
+        factory: Factory,
+    ) -> ConstOverIter<I, T, E, A, M, Factory> {
         Self {
-            iter,
+            iter: iter.enumerate(),
             stored_value: None,
             extractor,
             factory,
@@ -32,22 +36,23 @@ M: Fn(&T) -> A,
     }
 }
 
-impl<I, T, E, A, M> Iterator for ConstOverIter<I, T, E, A, M>
+impl<I, T, E, A, M, Factory> Iterator for ConstOverIter<I, T, E, A, M, Factory>
 where
-I: Iterator<Item = Result<T, E>>,
-A: PartialEq,
-M: Fn(&T) -> A,
+    I: Iterator<Item = Result<T, E>>,
+    A: PartialEq,
+    M: Fn(&T) -> A,
+    Factory: Fn(usize, T, A, &A) -> E,
 {
     type Item = Result<T, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(Ok(val)) => {
+            Some((i, Ok(val))) => {
                 let extraction = (self.extractor)(&val);
                 match &self.stored_value {
                     Some(expected_const) => match extraction == *expected_const {
                         true => Some(Ok(val)),
-                        false => Some(Err((self.factory)(val, extraction, expected_const))),
+                        false => Some(Err((self.factory)(i, val, extraction, expected_const))),
                     },
                     None => {
                         self.stored_value = Some(extraction);
@@ -55,34 +60,34 @@ M: Fn(&T) -> A,
                     }
                 }
             }
-            other => other,
+            Some((_, Err(e))) => Some(Err(e)),
+            None => None,
         }
     }
 }
 
-pub trait ConstOver<T, E, A, M>: Iterator<Item = Result<T, E>> + Sized
+pub trait ConstOver<T, E, A, M, Factory>: Iterator<Item = Result<T, E>> + Sized
 where
     A: PartialEq,
     M: Fn(&T) -> A,
+    Factory: Fn(usize, T, A, &A) -> E,
 {
-    fn const_over(
-        self,
-        extractor: M,
-        factory: fn(T, A, &A) -> E,
-    ) -> ConstOverIter<Self, T, E, A, M>;
+    fn const_over(self, extractor: M, factory: Factory)
+        -> ConstOverIter<Self, T, E, A, M, Factory>;
 }
 
-impl<I, T, E, A, M> ConstOver<T, E, A, M> for I
+impl<I, T, E, A, M, Factory> ConstOver<T, E, A, M, Factory> for I
 where
     I: Iterator<Item = Result<T, E>>,
     A: PartialEq,
     M: Fn(&T) -> A,
+    Factory: Fn(usize, T, A, &A) -> E,
 {
     fn const_over(
         self,
         extractor: M,
-        factory: fn(T, A, &A) -> E,
-    ) -> ConstOverIter<Self, T, E, A, M> {
+        factory: Factory,
+    ) -> ConstOverIter<Self, T, E, A, M, Factory> {
         ConstOverIter::new(self, extractor, factory)
     }
 }
@@ -98,15 +103,15 @@ mod tests {
     where
         A: std::fmt::Display,
     {
-        BrokenConst(T, A, String),
+        BrokenConst(usize, T, A, String),
         Not0Or2(T),
     }
 
-    fn broken_const<T, A>(item: T, eval: A, expected: &A) -> TestErr<T, A>
+    fn broken_const<T, A>(index: usize, item: T, eval: A, expected: &A) -> TestErr<T, A>
     where
         A: std::fmt::Display,
     {
-        TestErr::BrokenConst(item, eval, format!("{expected}"))
+        TestErr::BrokenConst(index, item, eval, format!("{expected}"))
     }
 
     #[test]
@@ -134,7 +139,7 @@ mod tests {
                 Ok(0),
                 Ok(0),
                 Ok(0),
-                Err(TestErr::BrokenConst(1, 1, "0".to_string()))
+                Err(TestErr::BrokenConst(3, 1, 1, "0".to_string()))
             ]
         )
     }
@@ -171,9 +176,9 @@ mod tests {
                 Ok([0]),
                 Ok([0]),
                 Ok([0]),
-                Err(TestErr::BrokenConst([1], 1, "0".to_string())),
+                Err(TestErr::BrokenConst(3, [1], 1, "0".to_string())),
                 Ok([0]),
-                Err(TestErr::BrokenConst([2], 2, "0".to_string()))
+                Err(TestErr::BrokenConst(5, [2], 2, "0".to_string()))
             ]
         )
     }
@@ -198,7 +203,7 @@ mod tests {
                 Ok(1),
                 Err(TestErr::Not0Or2(2)),
                 Ok(3),
-                Err(TestErr::BrokenConst(4, 0, "1".to_string()))
+                Err(TestErr::BrokenConst(4, 4, 0, "1".to_string()))
             ]
         )
     }

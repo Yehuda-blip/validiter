@@ -3,18 +3,19 @@
 pub struct AtLeastIter<I, T, E, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
-    Factory: Fn() -> E,
+    Factory: Fn(usize) -> E,
 {
     iter: I,
     min_count: usize,
     counter: usize,
+    enumeration_counter: usize,
     factory: Factory,
 }
 
 impl<I, T, E, Factory> AtLeastIter<I, T, E, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
-    Factory: Fn() -> E,
+    Factory: Fn(usize) -> E,
 {
     pub(crate) fn new(
         iter: I,
@@ -25,6 +26,7 @@ where
             iter,
             min_count,
             counter: 0,
+            enumeration_counter: 0,
             factory,
         }
     }
@@ -33,12 +35,12 @@ where
 impl<I, T, E, Factory> Iterator for AtLeastIter<I, T, E, Factory>
 where
     I: Iterator<Item = Result<T, E>>,
-    Factory: Fn() -> E,
+    Factory: Fn(usize) -> E,
 {
     type Item = Result<T, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.iter.next() {
+        let item = match self.iter.next() {
             Some(Ok(val)) => {
                 self.counter += 1;
                 Some(Ok(val))
@@ -47,17 +49,19 @@ where
                 true => None,
                 false => {
                     self.counter = self.min_count;
-                    Some(Err((self.factory)()))
+                    Some(Err((self.factory)(self.enumeration_counter)))
                 }
             },
             other => other,
-        }
+        };
+        self.enumeration_counter += 1;
+        item
     }
 }
 
 pub trait AtLeast<T, E, Factory>: Iterator<Item = Result<T, E>> + Sized
 where
-    Factory: Fn() -> E,
+    Factory: Fn(usize) -> E,
 {
     fn at_least(self, min_count: usize, factory: Factory) -> AtLeastIter<Self, T, E, Factory>;
 }
@@ -65,7 +69,7 @@ where
 impl<I, T, E, Factory> AtLeast<T, E, Factory> for I
 where
     I: Iterator<Item = Result<T, E>>,
-    Factory: Fn() -> E,
+    Factory: Fn(usize) -> E,
 {
     fn at_least(self, min_count: usize, factory: Factory) -> AtLeastIter<Self, T, E, Factory> {
         AtLeastIter::new(self, min_count, factory)
@@ -74,16 +78,16 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::AtLeast;
 
     #[derive(Debug, PartialEq)]
     enum TestErr {
-        NotEnough,
+        NotEnough(usize),
         NotOdd(i32),
     }
 
-    const fn not_enough() -> TestErr {
-        TestErr::NotEnough
+    const fn not_enough(index: usize) -> TestErr {
+        TestErr::NotEnough(index)
     }
 
     #[test]
@@ -95,7 +99,9 @@ mod tests {
             .enumerate()
             .for_each(|(i, res_i)| match res_i {
                 Ok(_) if i < 10 => {}
-                Err(TestErr::NotEnough) if i == 10 => {}
+                Err(TestErr::NotEnough(len)) if i == 10 => {
+                    assert_eq!(len, i)
+                }
                 _ => panic!("unexpected value in at least adapter"),
             })
     }
@@ -135,7 +141,7 @@ mod tests {
             .collect::<Result<Vec<_>, _>>();
         match tightly_bound_failure {
             Ok(_) => panic!("collection should fail"),
-            Err(TestErr::NotEnough) => {}
+            Err(TestErr::NotEnough(10)) => {}
             _ => panic!("bad variant"),
         }
 
@@ -145,7 +151,7 @@ mod tests {
             .collect::<Result<Vec<_>, _>>();
         match empty_failure {
             Ok(_) => panic!("collection should fail"),
-            Err(TestErr::NotEnough) => {}
+            Err(TestErr::NotEnough(0)) => {}
             _ => panic!("bad variant"),
         }
     }
@@ -158,7 +164,7 @@ mod tests {
             .enumerate()
             .for_each(|(i, res_i)| match res_i {
                 Ok(int) if int == i as i32 && i < 10 => {}
-                Err(TestErr::NotEnough) if i == 10 => {}
+                Err(TestErr::NotEnough(10)) if i == 10 => {}
                 _ => panic!("bad iteration after at least adapter failure"),
             })
     }
@@ -197,7 +203,7 @@ mod tests {
             .for_each(|(i, res_i)| {
                 match res_i {
                     Ok(_) if i < 10 => {},
-                    Err(TestErr::NotEnough) if i == 10 => {}
+                    Err(TestErr::NotEnough(10)) if i == 10 => {}
                     _ => panic!("did not fail the iteration in short circuit when last error element was not truncated")
                 }
             })
@@ -217,7 +223,7 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(
             results,
-            vec![Err(TestErr::NotOdd(0)), Err(TestErr::NotEnough)]
+            vec![Err(TestErr::NotOdd(0)), Err(TestErr::NotEnough(1))]
         )
     }
 }
