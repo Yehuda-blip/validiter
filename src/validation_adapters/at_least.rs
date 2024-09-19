@@ -1,4 +1,3 @@
-/// The [`Atleast`] ValidIter adapter, for more info see [`at_least`](crate::ValidIter::at_least).
 #[derive(Debug, Clone)]
 pub struct AtLeastIter<I, T, E, Factory>
 where
@@ -63,7 +62,69 @@ pub trait AtLeast<T, E, Factory>: Iterator<Item = Result<T, E>> + Sized
 where
     Factory: Fn(usize) -> E,
 {
-    fn at_least(self, min_count: usize, factory: Factory) -> AtLeastIter<Self, T, E, Factory>;
+    /// Fails a validation iterator if it does not contain `n` or more elements.
+    ///
+    /// `at_least(n, factory)` yields `Ok(element)` values until the iteration ends. If the
+    /// number of values in the iteration is less than `n`, a new element is
+    /// added to the end of the iteration with the value returned from calling `factory`
+    /// on the length of the iterator.
+    ///
+    /// The `at_least` adapter cannot handle short-circuiting of iterators, so
+    /// iterations such as `(0..10).validate().at_least(100).take(5)` will not
+    /// fail.
+    ///
+    /// Elements already wrapped in `Result::Err` will not be
+    /// counted towards reaching the `n` elements lower bound.
+    /// The length provided to `factory` includes elements wrapped in `Result::Err`.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use validiter::AtLeast;
+    /// # let a = [1, 2, 3];
+    /// # #[derive(Debug, PartialEq)]
+    /// struct NotEnough(usize);
+    /// let mut iter = a.iter().map(|v| Ok(v)).at_least(4, |i| NotEnough(i));
+    ///
+    /// assert_eq!(iter.next(), Some(Ok(&1)));
+    /// assert_eq!(iter.next(), Some(Ok(&2)));
+    /// assert_eq!(iter.next(), Some(Ok(&3)));
+    /// assert_eq!(iter.next(), Some(Err(NotEnough(3))));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    ///
+    /// `at_least` could be used to ensure that a vector created from an iterator
+    /// has a value in some index:
+    /// ```
+    /// use validiter::AtLeast;
+    /// let iter = 0..=2; // iteration is too short, no 4th element!
+    ///
+    /// let collection: Result<Vec<_>, _> = iter
+    ///     .map(|v| Ok(v))
+    ///     .at_least(4, |_| Err::<i32, ()>(()))
+    ///     .collect();
+    ///
+    /// match collection {
+    ///     Ok(vec) => {
+    ///         let val = vec[3]; // doesn't crash, because the collection failed.
+    ///     }
+    ///     Err(_) => {} // handle error
+    /// };
+    /// ```
+    /// `at_least` will not account for errors already in the iteration:
+    /// ```
+    /// # use validiter::AtLeast;
+    /// let mut iter = [Ok(0), Err(404)]
+    ///     .into_iter()
+    ///     .at_least(2, |_| 505);
+    /// assert_eq!(iter.next(), Some(Ok(0)));
+    /// assert_eq!(iter.next(), Some(Err(404)));
+    /// assert_eq!(iter.next(), Some(Err(505)));
+    /// ```
+    fn at_least(self, min_count: usize, factory: Factory) -> AtLeastIter<Self, T, E, Factory> {
+        AtLeastIter::new(self, min_count, factory)
+    }
 }
 
 impl<I, T, E, Factory> AtLeast<T, E, Factory> for I
@@ -71,9 +132,6 @@ where
     I: Iterator<Item = Result<T, E>>,
     Factory: Fn(usize) -> E,
 {
-    fn at_least(self, min_count: usize, factory: Factory) -> AtLeastIter<Self, T, E, Factory> {
-        AtLeastIter::new(self, min_count, factory)
-    }
 }
 
 #[cfg(test)]

@@ -1,6 +1,5 @@
 use std::iter::Enumerate;
 
-/// The [`AtMost`] ValidIter adapter, for more info see [`at_most`](crate::ValidIter::at_most).
 #[derive(Debug, Clone)]
 pub struct AtMostIter<I, T, E, Factory>
 where
@@ -54,7 +53,68 @@ pub trait AtMost<T, E, Factory>: Iterator<Item = Result<T, E>> + Sized
 where
     Factory: Fn(usize, T) -> E,
 {
-    fn at_most(self, min_count: usize, factory: Factory) -> AtMostIter<Self, T, E, Factory>;
+    /// Fails a validation iterator if it contains more than `n` elements.
+    ///
+    /// `at_most(n, factory)` yields `Ok(element)` values until `n` elements are yielded,
+    /// or the end of the iterator is reached. If values are still in the iteration,
+    /// `factory` will be applied on these together with the index of the error.
+    ///
+    /// Elements already wrapped in `Result::Err` will not be
+    /// counted towards reaching the `n` elements upper bound.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use validiter::AtMost;
+    /// #
+    /// # #[derive(Debug, PartialEq)]
+    /// struct MoreThan2(usize, i32);
+    ///
+    /// let a = [1, 2, 3];
+    /// let mut iter = a.iter().map(|v| Ok(v)).at_most(2, |index, val| MoreThan2(index, *val));
+    /// assert_eq!(iter.next(), Some(Ok(&1)));
+    /// assert_eq!(iter.next(), Some(Ok(&2)));
+    /// assert_eq!(iter.next(), Some(Err(MoreThan2(2, 3))));
+    /// ```
+    ///
+    /// Generally, `at_most` could be thought of as a not-quite-as-useful
+    /// complement to the [`at_least`](crate::AtLeast::at_least) adapter. It could also be used to ensure
+    /// that collecting an iterator does not result in an unexpected amount
+    /// of values in-memory:
+    /// ```
+    /// # use validiter::AtMost;
+    /// # #[derive(Debug, PartialEq)]
+    /// struct MoreThan10;
+    ///
+    /// let collection_result: Result<Vec<_>, _> = (0..)
+    ///     .take(1_000_000_000)
+    ///     .map(|i| Ok(i))
+    ///     .at_most(10, |_, _| MoreThan10)
+    ///     .collect::<Result<_, _>>();
+    ///
+    /// assert_eq!(collection_result, Err(MoreThan10));  
+    /// ```
+    ///
+    /// `at_most` will not account for errors already in the iteration:
+    /// ```
+    /// use validiter::AtMost;
+    /// #[derive(Debug, PartialEq)]
+    /// enum ValidErr {
+    ///     OtherError(i32),
+    ///     AtMostErr,
+    /// }
+    /// let mut iter = [Err(ValidErr::OtherError(0)), Ok(1)]
+    ///     .into_iter()
+    ///     .at_most(1, |_, _| ValidErr::AtMostErr);
+    ///
+    /// assert_eq!(iter.next(), Some(Err(ValidErr::OtherError(0))));
+    /// assert_eq!(iter.next(), Some(Ok(1)));
+    /// ```
+    ///
+    fn at_most(self, min_count: usize, factory: Factory) -> AtMostIter<Self, T, E, Factory> {
+        AtMostIter::new(self, min_count, factory)
+    }
 }
 
 impl<I, T, E, Factory> AtMost<T, E, Factory> for I
@@ -62,14 +122,11 @@ where
     I: Iterator<Item = Result<T, E>>,
     Factory: Fn(usize, T) -> E,
 {
-    fn at_most(self, min_count: usize, factory: Factory) -> AtMostIter<Self, T, E, Factory> {
-        AtMostIter::new(self, min_count, factory)
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::AtMost;
 
     #[derive(Debug, PartialEq)]
     enum TestErr<T> {

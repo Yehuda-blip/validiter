@@ -96,13 +96,93 @@ where
     F: Fn(&T, &A) -> bool,
     Factory: Fn(usize, T, &A) -> E,
 {
+    /// Fails an iteration if it does not conform to some cycling
+    /// of properties.
+    ///
+    /// `look_back(steps, extractor, validation, factory)` takes 4
+    /// arguments:
+    /// 1. `n` - a `usize` describing a cycle length
+    /// 2. `extractor` - a mapping of iterator elements to some extracted
+    /// value.
+    /// 3. `test` - a test which accepts the value extracted from
+    /// the nth preceding element, and tests the current element based
+    /// on this value.
+    /// 4. An error factory.
+    ///
+    /// Each iterator element wrapped in `Ok(element)` gets processed in
+    /// these 2 ways:
+    /// 1. Assuming there was a previous nth element (we'll call it `p_nth`),
+    /// the current element is tested for `validation(element, extractor(p_nth))`.
+    /// 2. If the element passed the test, it is wrapped in `Ok(element)`.
+    /// otherwise `factory` gets called on the index of the error, the failing element,
+    /// and a reference to the extracted value that failed the element.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use validiter::LookBack;
+    /// let mut iter = (0..=2).chain(2..=4).map(|v| Ok(v)).look_back(
+    ///     2,
+    ///     |i| *i,
+    ///     |prev, i| prev % 2 == i % 2,
+    ///     |index, val, failed_against| (index, val, *failed_against),
+    /// );
+    /// assert_eq!(iter.next(), Some(Ok(0)));
+    /// assert_eq!(iter.next(), Some(Ok(1)));
+    /// assert_eq!(iter.next(), Some(Ok(2))); // evaluated with respect to 0
+    /// assert_eq!(iter.next(), Some(Err((3, 2, 1)))); // at index 3, 2 is evaluated with respect to 1
+    /// assert_eq!(iter.next(), Some(Ok(3))); // also evaluated with respect to 1
+    /// assert_eq!(iter.next(), Some(Ok(4))); // evaluted with respect to 2
+    /// ```
+    ///
+    /// `look_back` can be used to force a monotonic iteration with relation to some
+    /// property, with the most obvious example being the 'monotonic increasing' one:
+    /// ```
+    /// # use validiter::LookBack;
+    ///     (1..)
+    ///         .map(|i| Ok((i as f64).log(std::f64::consts::E)))
+    ///         .look_back(1, |val| *val, |val, prev| val > prev, |_, _, _| ())
+    ///         .take(10)
+    ///         .for_each(|f| {
+    ///             f.expect("log e is not monotonic!");
+    ///         });
+    /// ```
+    ///
+    ///
+    /// `look_back` could be used to force an iteration to cycle through
+    /// a sequence of predetermined properties:
+    /// ```
+    /// # use validiter::LookBack;
+    /// let sequence = "abc";
+    /// let s = "abfbc";
+    /// 
+    /// let mut iter = sequence.chars().chain(s.chars()).map(|c| Ok(c)).look_back(
+    ///     3,
+    ///     |c| *c,
+    ///     |p_nth, c| p_nth == c,
+    ///     |_, _, _| (),
+    /// );
+    /// 
+    /// assert_eq!(iter.next(), Some(Ok('a')));
+    /// assert_eq!(iter.next(), Some(Ok('b')));
+    /// assert_eq!(iter.next(), Some(Ok('c')));
+    /// assert_eq!(iter.next(), Some(Ok('a')));
+    /// assert_eq!(iter.next(), Some(Ok('b')));
+    /// assert_eq!(iter.next(), Some(Err(())));
+    /// assert_eq!(iter.next(), Some(Err(())));
+    /// assert_eq!(iter.next(), Some(Ok('c')));
+    /// ```
+    ///
     fn look_back(
         self,
         steps: usize,
         extractor: M,
-        validation: F,
+        test: F,
         factory: Factory,
-    ) -> LookBackIter<Self, T, E, A, M, F, Factory>;
+    ) -> LookBackIter<Self, T, E, A, M, F, Factory> {
+        LookBackIter::new(self, steps, extractor, test, factory)
+    }
 }
 
 impl<I, T, E, A, M, F, Factory> LookBack<T, E, A, M, F, Factory> for I
@@ -112,15 +192,6 @@ where
     F: Fn(&T, &A) -> bool,
     Factory: Fn(usize, T, &A) -> E,
 {
-    fn look_back(
-        self,
-        steps: usize,
-        extractor: M,
-        validation: F,
-        factory: Factory,
-    ) -> LookBackIter<Self, T, E, A, M, F, Factory> {
-        LookBackIter::new(self, steps, extractor, validation, factory)
-    }
 }
 
 #[cfg(test)]

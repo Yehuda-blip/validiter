@@ -1,6 +1,5 @@
 use std::iter::Enumerate;
 
-/// The [`ConstOver`] ValidIter adapter, for more info see [`const_over`](crate::ValidIter::const_over).
 #[derive(Debug, Clone)]
 pub struct ConstOverIter<I, T, E, A, M, Factory>
 where
@@ -71,9 +70,72 @@ where
     A: PartialEq,
     M: Fn(&T) -> A,
     Factory: Fn(usize, T, A, &A) -> E,
-{
-    fn const_over(self, extractor: M, factory: Factory)
-        -> ConstOverIter<Self, T, E, A, M, Factory>;
+{    
+    /// Fails an iteration if `extractor` does not give the same result
+    /// for all elements.
+    ///
+    /// `const_over(extractor, factory)` takes a `Fn` argument that computes
+    /// some value for each element in iteration. If for some element
+    /// this results in a value which is not equal to value computed
+    /// from the first element, `factory` is called on the current iteration index, 
+    /// the element, the value extracted from this element, and the first value 
+    /// (which the extraction failed to equal). Otherwise, the element
+    /// is wrapped in `Ok(element)`. The first valid element is always wrapped
+    /// in `Ok`.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// use validiter::ConstOver;
+    /// let somecase = "ABc";
+    /// let mut iter = somecase.chars().map(|c| Ok(c)).const_over(
+    ///     |c| c.is_uppercase(),
+    ///     |index, char, case, expected_case| {
+    ///         (index, char, case, *expected_case == 'A'.is_uppercase())
+    ///     },
+    /// );
+    /// 
+    /// assert_eq!(iter.next(), Some(Ok('A')));
+    /// assert_eq!(iter.next(), Some(Ok('B')));
+    /// assert_eq!(
+    ///     iter.next(),
+    ///     Some(Err((2, 'c', false, true)))
+    /// );
+    /// ```
+    ///
+    /// `const_over` ignores errors:
+    /// ```
+    /// use validiter::ConstOver;
+    /// use validiter::Ensure;
+    /// 
+    /// #[derive(Debug, PartialEq)]
+    /// enum IterErr {
+    ///     IsA,
+    ///     CaseChanged,
+    /// }
+    /// let uppercase = "Abc";
+    /// let mut iter = uppercase
+    ///     .chars()
+    ///     .map(|v| Ok(v))
+    ///     .ensure(|c| *c != 'A', |_, _| IterErr::IsA)
+    ///     .const_over(|c| c.is_uppercase(), |_, _, _, _| IterErr::CaseChanged);
+    /// 
+    /// assert_eq!(
+    ///     iter.next(),
+    ///     Some(Err(IterErr::IsA))
+    /// );
+    /// assert_eq!(iter.next(), Some(Ok('b')));
+    /// assert_eq!(iter.next(), Some(Ok('c')));
+    /// ```
+    ///
+    fn const_over(
+        self,
+        extractor: M,
+        factory: Factory,
+    ) -> ConstOverIter<Self, T, E, A, M, Factory> {
+        ConstOverIter::new(self, extractor, factory)
+    }
 }
 
 impl<I, T, E, A, M, Factory> ConstOver<T, E, A, M, Factory> for I
@@ -83,13 +145,6 @@ where
     M: Fn(&T) -> A,
     Factory: Fn(usize, T, A, &A) -> E,
 {
-    fn const_over(
-        self,
-        extractor: M,
-        factory: Factory,
-    ) -> ConstOverIter<Self, T, E, A, M, Factory> {
-        ConstOverIter::new(self, extractor, factory)
-    }
 }
 
 #[cfg(test)]

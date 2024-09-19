@@ -1,6 +1,5 @@
 use std::iter::Enumerate;
 
-/// The [`Ensure`] ValidIter adapter, for more info see [`ensure`](crate::ValidIter::ensure).
 #[derive(Debug, Clone)]
 pub struct EnsureIter<I, T, E, F, Factory>
 where
@@ -52,7 +51,66 @@ pub trait Ensure<T, E, F, Factory>: Iterator<Item = Result<T, E>> + Sized
 where
     F: Fn(&T) -> bool,
     Factory: Fn(usize, T) -> E,
-{
+{    
+    /// Applies a boolean test too each element, and fails the
+    /// iteration if any element violates the constraint.
+    ///
+    /// `ensure(validation, factory)` is the general validation tool, it takes
+    /// a boolean test as an argument and applies it to each of the
+    /// elements in the iteration. If the test returns `true`, the element
+    /// is wrapped in `Ok(element)`. Otherwise, `factory` gets called on it
+    /// and the index of the error.
+    ///
+    /// Values already wrapped in `Result::Err` are ignored.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// use validiter::Ensure;
+    /// #[derive(Debug, PartialEq)]
+    /// struct Odd(usize, i32);
+    /// let mut iter = (0..=3).map(|v| Ok(v)).ensure(|i| i % 2 == 0, |i, v| Odd(i, v));
+    /// 
+    /// assert_eq!(iter.next(), Some(Ok(0)));
+    /// assert_eq!(iter.next(), Some(Err(Odd(1, 1))));
+    /// assert_eq!(iter.next(), Some(Ok(2)));
+    /// assert_eq!(iter.next(), Some(Err(Odd(3, 3))));
+    /// ```
+    ///
+    /// You might want to chain `ensure` validations to create
+    /// a more complex test:
+    /// ```
+    ///  # use validiter::Ensure;
+    ///  # #[derive(Debug, PartialEq)]
+    ///  enum IterError {
+    ///     Odd,
+    ///     NonPositive
+    ///  }
+    ///  
+    ///  let mut iter = (0..=3)
+    ///              .map(|v| Ok(v))
+    ///              .ensure(|i| i % 2 == 0, |_, _| IterError::Odd)
+    ///              .ensure(|i| *i > 0, |_, _| IterError::NonPositive);
+    /// 
+    ///  assert_eq!(iter.next(), Some(Err(IterError::NonPositive)));
+    ///  assert_eq!(iter.next(), Some(Err(IterError::Odd)));
+    ///  assert_eq!(iter.next(), Some(Ok(2)));
+    ///  assert_eq!(iter.next(), Some(Err(IterError::Odd)));
+    /// ```
+    ///
+    /// `ensure` ignores error elements:
+    /// ```
+    /// # use validiter::Ensure;
+    /// 
+    /// let mut iter = [Err(0)]
+    ///                     .into_iter()
+    ///                     .ensure(|i| *i == 0, |_, v| v);
+    ///
+    /// assert_eq!(iter.next(), Some(Err(0)));
+    /// ```
+    ///
+    /// [`Err(ValidErr::Invalid(element))`](crate::valid_result::ValidErr)
     fn ensure(self, test: F, factory: Factory) -> EnsureIter<Self, T, E, F, Factory> {
         EnsureIter::new(self, test, factory)
     }
